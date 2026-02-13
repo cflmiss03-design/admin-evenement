@@ -7,8 +7,8 @@ export default function Topbar({ user }) {
   const navigate = useNavigate();
 
   function handleLogout() {
-    logout(); // supprime localStorage et met isAuth=false
-    navigate("/admin-alexis"); // redirection vers login
+    logout(); 
+    navigate("/admin-alexis"); 
   }
 
   return (
@@ -25,7 +25,7 @@ export default function Topbar({ user }) {
       }}
     >
       {/* Titre Dashboard */}
-      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Dashboard Votes</h2>
+      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>MISS JUMELLES BENIN</h2>
 
       {/* Right section: notifications + user + logout */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
@@ -67,7 +67,7 @@ export default function Topbar({ user }) {
           >
             {user?.name?.charAt(0).toUpperCase() || "U"}
           </div>
-          <span style={{ fontWeight: 500 }}>{user?.name || "Utilisateur"}</span>
+          <span style={{ fontWeight: 500 }}>{user?.name || "ALEXIS H."}</span>
         </div>
 
         {/* Bouton Déconnexion */}

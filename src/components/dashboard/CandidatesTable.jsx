@@ -12,7 +12,7 @@ export default function ManagerClient() {
   useEffect(() => {
     async function loadCandidates() {
       try {
-        const res = await fetch("http://localhost:5000/api/manager");
+        const res = await fetch("https://vague-patty-amp1-2d1cfa97.koyeb.app/api/manager");
         if (!res.ok) throw new Error("Impossible de charger les candidates.");
         setCandidates(await res.json());
       } catch (err) {

@@ -1,4 +1,4 @@
-const API_URL="http://localhost:5000/api";
+const API_URL="https://vague-patty-amp1-2d1cfa97.koyeb.app/api";
 
 export async function getCandidates(){
   const res=await fetch(`${API_URL}/manager`);

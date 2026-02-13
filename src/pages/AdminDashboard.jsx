@@ -1,78 +1,50 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import Topbar from "../components/Topbar";
 import Sidebar from "../components/Sidebar";
-import StatsCards from "../components/StatsCards";
-import CandidatesTable from "../components/CandidatesTable";
-import WithdrawalForm from "../components/WithdrawalForm";
+import Topbar from "../components/Topbar";
 import FooterNotice from "../components/FooterNotice";
+import DashboardContent from "../components/dashboard/DashboardContent";
 
-export default function AdminDashboard({ user }) {
-
+export default function AdminDashboard({ user }) {  
   const { logout } = useAuth();
 
-  const [candidates, setCandidates] = useState([]);
   const [activePage, setActivePage] = useState("dashboard");
+  const [candidates, setCandidates] = useState([]);
+  const [balances, setBalances] = useState(null);
 
+  // fetch candidats
   useEffect(() => {
-    fetch("http://localhost:5000/api/manager")
+    fetch("https://vague-patty-amp1-2d1cfa97.koyeb.app/api/manager")
       .then(res => res.json())
       .then(setCandidates)
       .catch(console.error);
   }, []);
 
-  const totalVotes = candidates.reduce((a, c) => a + (c.totalVotes || 0), 0);
-  const globalBalance = totalVotes * 100;
-  const availableBalance = globalBalance - globalBalance * 0.05;
+  // fetch balances
+  useEffect(() => {
+    fetch("https://vague-patty-amp1-2d1cfa97.koyeb.app/api/balances")
+      .then(res => res.json())
+      .then(setBalances)
+      .catch(console.error);
+  }, []);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div className="flex min-h-screen">
+      <Sidebar activePage={activePage} onNavigate={setActivePage} />
 
-      <Sidebar
-        activePage={activePage}
-        onNavigate={setActivePage}
-      />
-
-      <div style={{
-        flex: 1,
-        marginLeft: 220,
-        display: "flex",
-        flexDirection: "column"
-      }}>
-
+      <div className="flex-1 flex flex-col md:ml-[220px]">
         <Topbar user={user} />
 
-        <div style={{
-          padding: 20,
-          flex: 1,
-          backgroundColor: "#f9fafb"
-        }}>
-
-          {/* DASHBOARD */}
-          {activePage === "dashboard" && (
-            <>
-              <StatsCards
-                totalVotes={totalVotes}
-                globalBalance={globalBalance}
-                availableBalance={availableBalance}
-              />
-
-              <CandidatesTable
-                candidates={candidates}
-                refresh={() => window.location.reload()}
-              />
-            </>
-          )}
-
-          {/* RETRAITS */}
-          {activePage === "withdrawals" && (
-            <WithdrawalForm amount={availableBalance} />
-          )}
-
+        <div className="flex-1 p-5 bg-gray-100">
+          <DashboardContent
+            activePage={activePage}
+            balances={balances}
+            candidates={candidates}
+            refresh={() => window.location.reload()}
+          />
         </div>
 
         <FooterNotice />
-
       </div>
     </div>
   );
