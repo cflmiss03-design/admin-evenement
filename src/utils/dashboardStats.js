@@ -4,7 +4,7 @@
  * Règles métier :
  *   soldeCompte     = totalVotes × prixUnitaire          (TOUS les votes, pas votesReels)
  *   soldeDisponible = balance.soldeDisponible             (valeur stockée, jamais calculée)
- *   soldeGlobal     = soldeCompte − soldeDisponible       (fonds bloqués chez FedaPay)
+ *   soldeGlobal     = soldeCompte − Balance.soldeDisponible (fonds bloqués chez FedaPay)
  *
  * @param {object|null} rawBalance - Réponse brute de GET /api/balances
  * @returns {object} Stats complètes prêtes à l'affichage
@@ -21,7 +21,7 @@ export function calculateDashboardStats(rawBalance) {
 
   const votesReels   = totalVotes - voteSimule;
   const soldeCompte  = votesReels * prixUnitaire;
-  const soldeGlobal  = soldeCompte - soldeDisponible;
+  const soldeGlobal  = soldeCompte - (rawBalance?.soldeDisponible || 0);
 
   return {
     totalVotes,
