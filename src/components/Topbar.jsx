@@ -8,7 +8,7 @@ export default function Topbar({ user }) {
 
   function handleLogout() {
     logout(); 
-    navigate("/admin-alexis"); 
+    navigate("/admin-missculture-bj");
   }
 
   return (
@@ -25,7 +25,7 @@ export default function Topbar({ user }) {
       }}
     >
       {/* Titre Dashboard */}
-      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>MISS JUMELLES BENIN</h2>
+      <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>MISS CULTURE BENIN</h2>
 
       {/* Right section: notifications + user + logout */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
@@ -65,9 +65,9 @@ export default function Topbar({ user }) {
               color: "#fff"
             }}
           >
-            {user?.name?.charAt(0).toUpperCase() || "U"}
+            {user?.name?.charAt(0).toUpperCase() || "T"}
           </div>
-          <span style={{ fontWeight: 500 }}>{user?.name || "ALEXIS H."}</span>
+          <span style={{ fontWeight: 500 }}>{user?.name || "THEOPHANE M."}</span>
         </div>
 
         {/* Bouton Déconnexion */}

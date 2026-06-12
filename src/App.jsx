@@ -7,11 +7,11 @@ export default function App() {
   return (
     <Routes>
       {/* Login Admin */}
-      <Route path="/admin-alexis" element={<AdminLogin />} />
+      <Route path="/admin-missculture-bj" element={<AdminLogin />} />
 
       {/* Dashboard protégé */}
       <Route
-        path="/admin-alexis/dashboard"
+        path="/admin-missculture-bj/dashboard"
         element={
           <ProtectedRoute>
             <AdminDashboard />

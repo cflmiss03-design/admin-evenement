@@ -4,27 +4,28 @@ import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import FooterNotice from "../components/FooterNotice";
 import DashboardContent from "../components/dashboard/DashboardContent";
+import { calculateDashboardStats } from "../utils/dashboardStats";
 
-export default function AdminDashboard({ user }) {  
+export default function AdminDashboard({ user }) {
   const { logout } = useAuth();
 
   const [activePage, setActivePage] = useState("dashboard");
   const [candidates, setCandidates] = useState([]);
-  const [balances, setBalances] = useState(null);
+  const [stats, setStats] = useState(calculateDashboardStats(null));
 
   // fetch candidats
   useEffect(() => {
-    fetch("https://vague-patty-amp1-2d1cfa97.koyeb.app/api/manager")
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/manager`)
       .then(res => res.json())
       .then(setCandidates)
       .catch(console.error);
   }, []);
 
-  // fetch balances
+  // fetch balances brutes → calcul frontend
   useEffect(() => {
-    fetch("https://vague-patty-amp1-2d1cfa97.koyeb.app/api/balances")
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/balances`)
       .then(res => res.json())
-      .then(setBalances)
+      .then(rawBalance => setStats(calculateDashboardStats(rawBalance)))
       .catch(console.error);
   }, []);
 
@@ -38,7 +39,7 @@ export default function AdminDashboard({ user }) {
         <div className="flex-1 p-5 bg-gray-100">
           <DashboardContent
             activePage={activePage}
-            balances={balances}
+            balances={stats}
             candidates={candidates}
             refresh={() => window.location.reload()}
           />

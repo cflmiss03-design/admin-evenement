@@ -1,4 +1,4 @@
-const API_URL="https://vague-patty-amp1-2d1cfa97.koyeb.app/api";
+const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 export async function getCandidates(){
   const res=await fetch(`${API_URL}/manager`);

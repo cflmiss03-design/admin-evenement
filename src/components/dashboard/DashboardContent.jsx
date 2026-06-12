@@ -24,13 +24,15 @@ export default function DashboardContent({ activePage, balances, candidates, ref
         <div>
           <h2 className="text-xl font-semibold mb-4">Fedapay</h2>
           <StatsCards
-            totalVotes={balances?.totalVotes || 0}
-            soldeGlobal={balances?.soldeGlobal || 0}
+            totalVotes={balances?.totalVotes       || 0}
+            voteSimule={balances?.voteSimule       || 0}
+            soldeGlobal={balances?.soldeGlobal     || 0}
             soldeDisponible={balances?.soldeDisponible || 0}
-            soldeCompte={balances?.soldeCompte || 0}
-            autreFrais={balances?.autreFrais || 0}
-            demandeEnCours={balances?.demandeEnCours || 0}
-            demandeTraitee={balances?.demandeTraitee || 0}
+            soldeCompte={balances?.soldeCompte     || 0}
+            autreFrais={balances?.autreFrais       || 0}
+            demandeEnCours={balances?.demandeEnCours  || 0}
+            demandeTraitee={balances?.demandeTraitee  || 0}
+            montantTransfere={balances?.montantTransfere || 0}
           />
         </div>
       );

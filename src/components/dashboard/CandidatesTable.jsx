@@ -12,7 +12,7 @@ export default function ManagerClient() {
   useEffect(() => {
     async function loadCandidates() {
       try {
-        const res = await fetch("https://vague-patty-amp1-2d1cfa97.koyeb.app/api/manager");
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/manager`);
         if (!res.ok) throw new Error("Impossible de charger les candidates.");
         setCandidates(await res.json());
       } catch (err) {
@@ -49,14 +49,14 @@ function exportPDF() {
 
   // Titre centré
   doc.setFontSize(18);
-  const title = "CLASSEMENT OFFICIEL — CONCOURS MISS JUMELLES BÉNIN 2026";
+  const title = "CLASSEMENT OFFICIEL — CONCOURS MISS CULTURE BENIN 2026";
   const textWidth = doc.getTextWidth(title);
   doc.text(title, (pageWidth - textWidth) / 2, 20);
 
   const tableData = sortedCandidates.map((c, index) => [
     formatOrdre(index + 1),
     c.orderNumber,
-    `${c.lastName} ${c.firstName} - ${c.secondName}`,
+    `${c.lastName} ${c.firstName}${c.secondName && c.secondName.trim() !== '-' ? ` ${c.secondName.trim()}` : ''}`,
     c.totalVotes || 0
   ]);
 
@@ -94,18 +94,18 @@ function exportPDF() {
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     const footerY = pageHeight - 35;
-    doc.text(`Evènement : Concours Miss Jumelles Bénin 2026`, 14, footerY);
-    doc.text(`Date début vote : 07 Février 2026`, 14, footerY + 5);
-    doc.text(`Date fin vote : 30 Mars 2026`, 14, footerY + 10);
+    doc.text(`Evènement : Concours Miss Culture Benin 2026`, 14, footerY);
+    doc.text(`Date début vote : 05 JUIN 2026`, 14, footerY + 5);
+    doc.text(`Date fin vote : 30 JUIN 2026`, 14, footerY + 10);
     doc.text(`Date export : ${now}`, pageWidth - 60, footerY);
     doc.text("GROUPE CFL WORD", pageWidth - 60, footerY + 5);
-    doc.text("§229 0147471465 (WhatsApp)", pageWidth - 60, footerY + 10);
+    doc.text("+229 0147471465 (WhatsApp)", pageWidth - 60, footerY + 10);
   }
 
   // Nom PDF unique
   const nowDate = new Date();
   const codeUnique = `${nowDate.getHours()}${nowDate.getMinutes()}${nowDate.getSeconds()}`;
-  doc.save(`Classement_Concours_Miss_Jumelles_Benin_2026_${codeUnique}.pdf`);
+  doc.save(`Classement_Concours_Miss_Culture_Benin_2026_${codeUnique}.pdf`);
 }
 
   if (loading) return <p>Chargement...</p>;
@@ -129,7 +129,7 @@ function exportPDF() {
       </button>
 
       <h2 style={{ textAlign: "center" }}>
-        CLASSEMENT OFFICIEL — CONCOURS MISS JUMELLES BÉNIN 2026
+        CLASSEMENT OFFICIEL — CONCOURS MISS CULTURE BENIN 2026
       </h2>
 
       <div style={{ overflowX: "auto" }}>
@@ -151,7 +151,7 @@ function exportPDF() {
                   <td style={{ padding: 10 }}>{formatOrdre(position)}</td>
                   <td style={{ padding: 10 }}>{c.orderNumber}</td>
                   <td style={{ padding: 10 }}>
-                    {c.lastName} {c.firstName} - {c.secondName}
+                    {c.lastName} {c.firstName}{c.secondName && c.secondName.trim() !== '-' ? ` ${c.secondName.trim()}` : ''}
                   </td>
                   <td style={{ padding: 10 }}>{c.totalVotes || 0}</td>
                 </tr>
@@ -163,15 +163,15 @@ function exportPDF() {
 
       <div style={{ marginTop: 20, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', fontSize: 14 }}>
         <div>
-          <div><strong>Evènement :</strong> Concours Miss Jumelles Bénin 2026</div>
-          <div><strong>Date début vote :</strong> 07 Février 2026</div>
-          <div><strong>Date fin vote :</strong> 30 Mars 2026</div>
+          <div><strong>Evènement :</strong> Concours Miss Culture Benin 2026</div>
+          <div><strong>Date début vote :</strong> 05 JUIN 2026</div>
+          <div><strong>Date fin vote :</strong> 30 JUIN 2026</div>
         </div>
 
         <div style={{ textAlign: 'right' }}>
           <div>{now}</div>
           <div><strong>GROUPE CFL WORD</strong></div>
-          <div>§229 0147471465 (WhatsApp)</div>
+          <div>+229 0147471465 (WhatsApp)</div>
         </div>
       </div>
     </div>

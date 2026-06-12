@@ -13,7 +13,7 @@ export default function AdminLogin() {
   // Redirection si déjà connecté
   useEffect(() => {
     if (isAuth) {
-      navigate("/admin-alexis/dashboard", { replace: true });
+      navigate("/admin-missculture-bj/dashboard", { replace: true });
     }
   }, [isAuth, navigate]);
 
@@ -22,7 +22,7 @@ export default function AdminLogin() {
     const success = login(email, password);
 
     if (success) {
-      navigate("/admin-alexis/dashboard", { replace: true });
+      navigate("/admin-missculture-bj/dashboard", { replace: true });
     } else {
       setError("Accès refusé : Email ou mot de passe incorrect");
     }
@@ -75,7 +75,7 @@ export default function AdminLogin() {
         </form>
 
         <p className="text-center text-gray-500 text-sm mt-6">
-          © {new Date().getFullYear()} ADMIN FEDAPAY INTEGRATION MISS JUMELLES BENIN
+          © {new Date().getFullYear()} ADMIN FEDAPAY INTEGRATION GROUPE CFL WORLD SERVICE
         </p>
       </div>
     </div>

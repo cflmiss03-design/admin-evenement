@@ -10,7 +10,7 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!isAuth) {
-    return <Navigate to="/admin-alexis" replace />;
+    return <Navigate to="/admin-missculture-bj" replace />;
   }
 
   return children;
