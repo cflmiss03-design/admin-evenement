@@ -12,7 +12,9 @@ export default function ManagerClient() {
   useEffect(() => {
     async function loadCandidates() {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/manager`);
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/manager`, {
+          headers: { "x-admin-secret": import.meta.env.VITE_MANAGER_SECRET },
+        });
         if (!res.ok) throw new Error("Impossible de charger les candidates.");
         setCandidates(await res.json());
       } catch (err) {

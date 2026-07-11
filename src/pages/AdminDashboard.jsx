@@ -15,7 +15,9 @@ export default function AdminDashboard({ user }) {
 
   // fetch candidats
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/manager`)
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/manager`, {
+      headers: { "x-admin-secret": import.meta.env.VITE_MANAGER_SECRET },
+    })
       .then(res => res.json())
       .then(setCandidates)
       .catch(console.error);

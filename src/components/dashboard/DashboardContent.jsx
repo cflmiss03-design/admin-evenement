@@ -2,6 +2,7 @@ import StatsCards from "./StatsCards";
 import DashboardHome from "./DashboardHome";
 import CandidatesTable from "./CandidatesTable";
 import WithdrawalForm from "./WithdrawalForm";
+import TicketSales from "./TicketSales";
 
 export default function DashboardContent({ activePage, balances, candidates, refresh }) {
   switch (activePage) {
@@ -18,6 +19,9 @@ export default function DashboardContent({ activePage, balances, candidates, ref
           <CandidatesTable candidates={candidates} refresh={refresh} />
         </div>
       );
+
+    case "tickets":
+      return <TicketSales />;
 
     case "fedapay":
       return (

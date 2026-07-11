@@ -4,7 +4,8 @@ import {
   FaMoneyCheckAlt,
   FaBars,
   FaVoteYea,
-  FaExchangeAlt
+  FaExchangeAlt,
+  FaTicketAlt
 } from "react-icons/fa";
 
 export default function Sidebar({ activePage, onNavigate }) {
@@ -32,6 +33,7 @@ export default function Sidebar({ activePage, onNavigate }) {
     { title: "Accueil", key: "dashboard", icon: <FaTachometerAlt /> },
     { title: "Retraits", key: "withdrawals", icon: <FaMoneyCheckAlt /> },
     { title: "Votes", key: "votes", icon: <FaVoteYea /> },
+    { title: "Tickets", key: "tickets", icon: <FaTicketAlt /> },
     { title: "Fedapay", key: "fedapay", icon: <FaExchangeAlt /> }
   ];
 

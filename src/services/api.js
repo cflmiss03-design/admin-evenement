@@ -1,7 +1,9 @@
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 export async function getCandidates(){
-  const res=await fetch(`${API_URL}/manager`);
+  const res=await fetch(`${API_URL}/manager`, {
+    headers: { "x-admin-secret": import.meta.env.VITE_MANAGER_SECRET },
+  });
   if(!res.ok) throw new Error("Erreur chargement candidates");
   return res.json();
 }
