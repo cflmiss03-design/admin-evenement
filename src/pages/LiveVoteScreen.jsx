@@ -31,6 +31,7 @@ export default function LiveVoteScreen() {
   const [candidates, setCandidates] = useState([]);
   const [error, setError] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [idle, setIdle] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
   const [slideVisible, setSlideVisible] = useState(true);
@@ -114,6 +115,23 @@ export default function LiveVoteScreen() {
     return () => clearInterval(interval);
   }, []);
 
+  // Plein écran natif du navigateur : Échap en sort tout seul (comportement
+  // standard de l'API Fullscreen, rien à coder pour ça) — on se contente de
+  // suivre l'état pour afficher le bon libellé sur le bouton.
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }
+
   const ranked = useMemo(
     () => [...candidates].sort((a, b) => (b.realVotes || 0) - (a.realVotes || 0)),
     [candidates]
@@ -170,7 +188,14 @@ export default function LiveVoteScreen() {
             className="h-full w-full object-cover"
             style={{
               objectPosition: panDown ? "center 35%" : "center top",
-              transition: `object-position ${SLIDE_DURATION_MS}ms linear`,
+              // Le retour au "haut" doit être instantané (sinon la remise à
+              // zéro elle-même s'anime sur 5s et la photo suivante démarre
+              // déjà à mi-descente, coupée) — seule la descente est animée,
+              // donc la transition n'est active que lorsque panDown passe à
+              // true (voir l'effet ci-dessus qui remet panDown à false puis
+              // à true 50ms plus tard, le temps que le navigateur peigne
+              // l'état "haut, sans transition").
+              transition: panDown ? `object-position ${SLIDE_DURATION_MS}ms linear` : "none",
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/40" />
@@ -185,9 +210,14 @@ export default function LiveVoteScreen() {
           </h2>
           <p className="mt-2 text-xl text-white/60">Candidate n°{c.orderNumber}</p>
         </div>
-        <div className="absolute right-6 top-6 flex items-center gap-2 text-sm text-white/40">
-          <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400" : "bg-red-500"}`} />
-          {connected ? "En direct" : "Reconnexion..."}
+        <div className="absolute right-6 top-6 flex items-center gap-4 text-sm text-white/40">
+          <button onClick={toggleFullscreen} className="rounded-lg bg-black/40 px-3 py-1.5 hover:bg-black/60 hover:text-white/80">
+            {isFullscreen ? "Quitter le plein écran" : "⛶ Plein écran"}
+          </button>
+          <span className="flex items-center gap-2">
+            <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400" : "bg-red-500"}`} />
+            {connected ? "En direct" : "Reconnexion..."}
+          </span>
         </div>
       </div>
     );
@@ -201,9 +231,14 @@ export default function LiveVoteScreen() {
             <p className="text-sm uppercase tracking-[0.3em] text-amber-400">Vote en direct</p>
             <h1 className="text-4xl font-black sm:text-5xl">{tenant.label}</h1>
           </div>
-          <div className="flex items-center gap-2 text-sm text-white/50">
-            <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400" : "bg-red-500"}`} />
-            {connected ? "En direct" : "Reconnexion..."}
+          <div className="flex items-center gap-4 text-sm text-white/50">
+            <button onClick={toggleFullscreen} className="rounded-lg bg-white/5 px-3 py-1.5 hover:bg-white/10 hover:text-white">
+              {isFullscreen ? "Quitter le plein écran" : "⛶ Plein écran"}
+            </button>
+            <span className="flex items-center gap-2">
+              <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400" : "bg-red-500"}`} />
+              {connected ? "En direct" : "Reconnexion..."}
+            </span>
           </div>
         </div>
 
