@@ -8,6 +8,7 @@ const navItems = [
   { to: "/historique-votes", label: "Historique des votes", icon: "🕐", adminOnly: false },
   { to: "/verification-votes", label: "Vérification des votes", icon: "🔍", adminOnly: true },
   { to: "/candidats", label: "Candidats", icon: "🎤", adminOnly: false },
+  { to: "/resultats-officiels", label: "Résultats officiels", icon: "🏆", adminOnly: true },
   { to: "/periode-de-vote", label: "Période de vote", icon: "🗓️", adminOnly: false },
   { to: "/retraits", label: "Retraits", icon: "💸", adminOnly: false },
   { to: "/ventes-tickets", label: "Ventes de tickets", icon: "🧾", adminOnly: false },

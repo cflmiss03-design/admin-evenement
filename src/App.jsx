@@ -15,6 +15,7 @@ import TicketClaims from "./pages/TicketClaims.jsx";
 import Accounts from "./pages/Accounts.jsx";
 import AuditLog from "./pages/AuditLog.jsx";
 import LiveVoteScreen from "./pages/LiveVoteScreen.jsx";
+import Epreuves from "./pages/Epreuves.jsx";
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
 
           <Route element={<AdminOnlyRoute />}>
             <Route path="/verification-votes" element={<PendingVotes />} />
+            <Route path="/resultats-officiels" element={<Epreuves />} />
             <Route path="/types-de-tickets" element={<TicketTypes />} />
             <Route path="/reclamations" element={<TicketClaims />} />
             <Route path="/comptes" element={<Accounts />} />
