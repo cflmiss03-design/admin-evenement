@@ -14,11 +14,13 @@ import TicketTypes from "./pages/TicketTypes.jsx";
 import TicketClaims from "./pages/TicketClaims.jsx";
 import Accounts from "./pages/Accounts.jsx";
 import AuditLog from "./pages/AuditLog.jsx";
+import LiveVoteScreen from "./pages/LiveVoteScreen.jsx";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/direct/:tenantKey" element={<LiveVoteScreen />} />
 
       <Route element={<ProtectedRoute />}>
         <Route path="/changer-mot-de-passe" element={<ChangePassword />} />

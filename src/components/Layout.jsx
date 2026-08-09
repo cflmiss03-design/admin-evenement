@@ -110,6 +110,19 @@ export default function Layout() {
             ))}
         </nav>
 
+        <div className="border-t border-slate-200 px-5 py-3">
+          <a
+            href={`/direct/${currentTenant}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-all duration-150 hover:bg-slate-100 hover:text-slate-900"
+          >
+            <span className="text-base">🖥️</span>
+            <span>Écran de vote en direct</span>
+          </a>
+          <p className="px-3 pb-1 text-[11px] text-slate-400">Page publique, à projeter — aucune connexion requise pour l'ouvrir.</p>
+        </div>
+
         <div className="border-t border-slate-200 px-5 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
