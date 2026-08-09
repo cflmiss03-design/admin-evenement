@@ -6,6 +6,7 @@ import { TENANTS, getTenant } from "../lib/tenants.js";
 const navItems = [
   { to: "/dashboard", label: "Tableau de bord", icon: "📊", adminOnly: false },
   { to: "/historique-votes", label: "Historique des votes", icon: "🕐", adminOnly: false },
+  { to: "/verification-votes", label: "Vérification des votes", icon: "🔍", adminOnly: true },
   { to: "/candidats", label: "Candidats", icon: "🎤", adminOnly: false },
   { to: "/periode-de-vote", label: "Période de vote", icon: "🗓️", adminOnly: false },
   { to: "/retraits", label: "Retraits", icon: "💸", adminOnly: false },

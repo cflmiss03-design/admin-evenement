@@ -5,6 +5,7 @@ import Login from "./pages/Login.jsx";
 import ChangePassword from "./pages/ChangePassword.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import VoteHistory from "./pages/VoteHistory.jsx";
+import PendingVotes from "./pages/PendingVotes.jsx";
 import Candidates from "./pages/Candidates.jsx";
 import VotingPeriod from "./pages/VotingPeriod.jsx";
 import Withdrawals from "./pages/Withdrawals.jsx";
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/ventes-tickets" element={<TicketSales />} />
 
           <Route element={<AdminOnlyRoute />}>
+            <Route path="/verification-votes" element={<PendingVotes />} />
             <Route path="/types-de-tickets" element={<TicketTypes />} />
             <Route path="/reclamations" element={<TicketClaims />} />
             <Route path="/comptes" element={<Accounts />} />
