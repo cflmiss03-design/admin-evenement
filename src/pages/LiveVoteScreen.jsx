@@ -34,6 +34,10 @@ export default function LiveVoteScreen() {
   const [idle, setIdle] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
   const [slideVisible, setSlideVisible] = useState(true);
+  // Cadrage plein écran : commence sur le haut de la photo (visages non
+  // coupés, contrairement à un cadrage centré) puis descend lentement vers
+  // le bas pendant l'affichage — effet "Ken Burns" discret.
+  const [panDown, setPanDown] = useState(false);
 
   const lastActivityRef = useRef(Date.now());
 
@@ -134,6 +138,16 @@ export default function LiveVoteScreen() {
     if (idle) setSlideVisible(true);
   }, [idle]);
 
+  // Relance le panoramique haut -> bas à chaque nouvelle photo : on repart
+  // du haut (état non transitionné) puis, une fois affiché, on déclenche la
+  // transition vers le bas sur la durée du slide.
+  useEffect(() => {
+    if (!idle) return;
+    setPanDown(false);
+    const t = setTimeout(() => setPanDown(true), 50);
+    return () => clearTimeout(t);
+  }, [slideIndex, idle]);
+
   if (!tenant) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
@@ -150,7 +164,15 @@ export default function LiveVoteScreen() {
           className="absolute inset-0 transition-opacity ease-in-out"
           style={{ opacity: slideVisible ? 1 : 0, transitionDuration: `${FADE_DURATION_MS}ms` }}
         >
-          <img src={c.photoUrl} alt="" className="h-full w-full object-cover" />
+          <img
+            src={c.photoUrl}
+            alt=""
+            className="h-full w-full object-cover"
+            style={{
+              objectPosition: panDown ? "center 35%" : "center top",
+              transition: `object-position ${SLIDE_DURATION_MS}ms linear`,
+            }}
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/40" />
         </div>
         <div
@@ -200,7 +222,7 @@ export default function LiveVoteScreen() {
                 <img
                   src={c.photoUrl}
                   alt=""
-                  className={`h-20 w-20 flex-shrink-0 rounded-full border-4 object-cover ${isLeader ? "border-amber-400" : "border-white/10"}`}
+                  className={`h-20 w-20 flex-shrink-0 rounded-full border-4 object-cover object-top ${isLeader ? "border-amber-400" : "border-white/10"}`}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="mb-1.5 flex items-baseline justify-between gap-4">
