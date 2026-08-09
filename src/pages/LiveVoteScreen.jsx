@@ -17,12 +17,25 @@ const WS_ORIGIN = ORIGIN.replace(/^http/, "ws");
 // reconnexion websocket manquée ne doit jamais figer durablement l'écran).
 const REFRESH_INTERVAL_MS = 20000;
 
+// Absence de vote pendant ce délai -> bascule en diaporama plein écran des
+// photos. Le moindre vote (réel ou changement de votes fictifs) fait
+// revenir au classement immédiatement (voir handling du websocket).
+const IDLE_THRESHOLD_MS = 15000;
+// Durée d'affichage de chaque photo dans le diaporama, fondu compris.
+const SLIDE_DURATION_MS = 5000;
+const FADE_DURATION_MS = 700;
+
 export default function LiveVoteScreen() {
   const { tenantKey } = useParams();
   const tenant = getTenant(tenantKey);
   const [candidates, setCandidates] = useState([]);
   const [error, setError] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [idle, setIdle] = useState(false);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [slideVisible, setSlideVisible] = useState(true);
+
+  const lastActivityRef = useRef(Date.now());
 
   const load = useRef(null);
   load.current = () => {
@@ -68,6 +81,10 @@ export default function LiveVoteScreen() {
                 : c
             )
           );
+          // Un vote vient d'arriver : retour immédiat au classement, même
+          // en plein milieu du diaporama.
+          lastActivityRef.current = Date.now();
+          setIdle(false);
         } catch {
           // message invalide, ignoré
         }
@@ -82,16 +99,74 @@ export default function LiveVoteScreen() {
     };
   }, [tenant]);
 
+  // Surveille l'inactivité (aucun vote depuis IDLE_THRESHOLD_MS) pour
+  // basculer en diaporama — vérifié chaque seconde plutôt qu'avec un seul
+  // timer différé, pour que chaque nouveau vote puisse repousser la
+  // bascule sans avoir à recréer un timer à chaque message.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIdle(Date.now() - lastActivityRef.current >= IDLE_THRESHOLD_MS);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const ranked = useMemo(
     () => [...candidates].sort((a, b) => (b.realVotes || 0) - (a.realVotes || 0)),
     [candidates]
   );
   const maxVotes = Math.max(1, ranked[0]?.realVotes || 0);
 
+  // Fait avancer le diaporama pendant l'inactivité — fondu sortant puis
+  // changement de photo puis fondu entrant.
+  useEffect(() => {
+    if (!idle || ranked.length === 0) return;
+    const interval = setInterval(() => {
+      setSlideVisible(false);
+      setTimeout(() => {
+        setSlideIndex((i) => (i + 1) % ranked.length);
+        setSlideVisible(true);
+      }, FADE_DURATION_MS);
+    }, SLIDE_DURATION_MS);
+    return () => clearInterval(interval);
+  }, [idle, ranked.length]);
+
+  useEffect(() => {
+    if (idle) setSlideVisible(true);
+  }, [idle]);
+
   if (!tenant) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
         <p className="text-2xl">Événement inconnu : "{tenantKey}"</p>
+      </div>
+    );
+  }
+
+  if (idle && ranked.length > 0) {
+    const c = ranked[slideIndex % ranked.length];
+    return (
+      <div className="relative h-screen w-screen overflow-hidden bg-black">
+        <div
+          className="absolute inset-0 transition-opacity ease-in-out"
+          style={{ opacity: slideVisible ? 1 : 0, transitionDuration: `${FADE_DURATION_MS}ms` }}
+        >
+          <img src={c.photoUrl} alt="" className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/40" />
+        </div>
+        <div
+          className="absolute inset-x-0 bottom-0 px-10 pb-14 transition-opacity ease-in-out sm:px-16"
+          style={{ opacity: slideVisible ? 1 : 0, transitionDuration: `${FADE_DURATION_MS}ms` }}
+        >
+          <p className="text-sm uppercase tracking-[0.4em] text-amber-400">{tenant.label}</p>
+          <h2 className="mt-2 text-5xl font-black text-white sm:text-7xl">
+            {c.firstName} {c.lastName}
+          </h2>
+          <p className="mt-2 text-xl text-white/60">Candidate n°{c.orderNumber}</p>
+        </div>
+        <div className="absolute right-6 top-6 flex items-center gap-2 text-sm text-white/40">
+          <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-emerald-400" : "bg-red-500"}`} />
+          {connected ? "En direct" : "Reconnexion..."}
+        </div>
       </div>
     );
   }
