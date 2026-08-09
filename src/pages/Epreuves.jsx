@@ -12,6 +12,8 @@ export default function Epreuves() {
   const { currentTenant } = useAuth();
   const [candidates, setCandidates] = useState([]);
   const [epreuves, setEpreuves] = useState([]);
+  const [reveal, setReveal] = useState(null); // { revealedCandidateIds, finalRevealed, ranking }
+  const [revealActionId, setRevealActionId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -26,10 +28,12 @@ export default function Epreuves() {
     Promise.all([
       tenantApi(currentTenant, "/manager"),
       tenantApi(currentTenant, "/manager/epreuves"),
+      tenantApi(currentTenant, "/manager/reveal"),
     ])
-      .then(([cands, eps]) => {
+      .then(([cands, eps, revealState]) => {
         setCandidates([...cands].sort((a, b) => a.orderNumber - b.orderNumber));
         setEpreuves(eps);
+        setReveal(revealState);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -156,7 +160,57 @@ export default function Epreuves() {
     }
   }
 
+  async function toggleReveal(candidateId, revealed) {
+    setRevealActionId(candidateId);
+    setError(null);
+    try {
+      const result = await tenantApi(currentTenant, `/manager/reveal/${candidateId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ revealed }),
+      });
+      setReveal((r) => ({ ...r, revealedCandidateIds: result.revealedCandidateIds }));
+      setNotice(revealed ? "Candidate révélée — visible sur la page publique." : "Candidate masquée à nouveau.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRevealActionId(null);
+    }
+  }
+
+  async function toggleFinalReveal(finalRevealed) {
+    if (
+      finalRevealed &&
+      !window.confirm("Afficher le classement complet (top 7) sur la page publique maintenant ?")
+    ) {
+      return;
+    }
+    setError(null);
+    try {
+      const result = await tenantApi(currentTenant, "/manager/reveal/final", {
+        method: "PATCH",
+        body: JSON.stringify({ finalRevealed }),
+      });
+      setReveal((r) => ({ ...r, finalRevealed: result.finalRevealed }));
+      setNotice(finalRevealed ? "Classement complet affiché publiquement." : "Retour au mode révélation candidate par candidate.");
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function resetReveal() {
+    if (!window.confirm("Réinitialiser la proclamation ? Toutes les candidates redeviennent masquées (les notes des épreuves ne sont pas touchées).")) return;
+    setError(null);
+    try {
+      await tenantApi(currentTenant, "/manager/reveal", { method: "DELETE" });
+      setNotice("Proclamation réinitialisée.");
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   const selectedCount = Object.keys(form.selected).length;
+  const revealedSet = new Set((reveal?.revealedCandidateIds || []).map(String));
 
   return (
     <div>
@@ -232,6 +286,59 @@ export default function Epreuves() {
                     <span className="font-bold text-brand-600">{entry.total} pts</span>
                   </li>
                 ))}
+              </ol>
+            </div>
+          )}
+
+          {reveal && reveal.ranking.length > 0 && (
+            <div className="panel-card mt-8 border-2 border-amber-200 bg-amber-50/40">
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">🏆 Proclamation en direct</p>
+                  <p className="text-xs text-slate-500">
+                    Basé uniquement sur les épreuves publiées. Révélez les candidates une par une, dans l'ordre annoncé par le jury.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={resetReveal} className="btn-secondary text-xs">Réinitialiser</button>
+                  {reveal.finalRevealed ? (
+                    <button onClick={() => toggleFinalReveal(false)} className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800">
+                      Revenir en mode révélation
+                    </button>
+                  ) : (
+                    <button onClick={() => toggleFinalReveal(true)} className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700">
+                      Afficher le classement complet
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {reveal.finalRevealed && (
+                <p className="mt-3 rounded-md bg-emerald-100 px-3 py-2 text-xs font-medium text-emerald-800">
+                  Le classement complet est actuellement affiché publiquement.
+                </p>
+              )}
+
+              <ol className="mt-4 space-y-2">
+                {reveal.ranking.map((entry) => {
+                  const isRevealed = revealedSet.has(entry.candidateId);
+                  return (
+                    <li key={entry.candidateId} className="flex items-center gap-3 rounded-lg bg-white px-3 py-2 text-sm shadow-sm">
+                      <span className="w-6 text-right font-bold text-slate-400">{entry.rank}.</span>
+                      <span className="flex-1 font-medium text-slate-900">{entry.candidateName}</span>
+                      <span className="font-bold text-brand-600">{entry.total} pts</span>
+                      <button
+                        disabled={revealActionId === entry.candidateId || reveal.finalRevealed}
+                        onClick={() => toggleReveal(entry.candidateId, !isRevealed)}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold disabled:opacity-40 ${
+                          isRevealed ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        {isRevealed ? "✓ Révélée" : "Révéler"}
+                      </button>
+                    </li>
+                  );
+                })}
               </ol>
             </div>
           )}
