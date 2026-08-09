@@ -1,73 +1,106 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { panelApi, getToken, setToken } from "../lib/api.js";
+import { TENANTS } from "../lib/tenants.js";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [isAuth, setIsAuth] = useState(false);
-  const [loading, setLoading] = useState(true); // état pour le chargement initial
+const TENANT_STORAGE_KEY = "panel_selected_tenant";
 
-  // Lecture de la session au démarrage
-  useEffect(() => {
-    const auth = localStorage.getItem("managerAuth") === "true";
-    setIsAuth(auth);
-    setLoading(false);
-  }, []);
-
-  // Fonction de login
-  function login(email, password) {
-    if (
-      email === import.meta.env.VITE_ADMIN_EMAIL &&
-      password === import.meta.env.VITE_ADMIN_PASSWORD
-    ) {
-      localStorage.setItem("managerAuth", "true");
-      setIsAuth(true);
-      return true;
-    }
-    return false;
-  }
-
-  // Fonction de logout
-  function logout() {
-    localStorage.removeItem("managerAuth");
-    setIsAuth(false);
-  }
-
-  // Déconnexion automatique après 30 minutes d’inactivité
-  useEffect(() => {
-    let timer;
-
-    const resetTimer = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        logout(); // déconnexion
-      }, 30 * 60 * 1000); // 30 minutes
-    };
-
-    // Événements pour détecter activité utilisateur
-    window.addEventListener("mousemove", resetTimer);
-    window.addEventListener("keydown", resetTimer);
-    window.addEventListener("click", resetTimer);
-    window.addEventListener("scroll", resetTimer);
-
-    // Initialiser le timer
-    resetTimer();
-
-    // Nettoyage au démontage du composant
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("mousemove", resetTimer);
-      window.removeEventListener("keydown", resetTimer);
-      window.removeEventListener("click", resetTimer);
-      window.removeEventListener("scroll", resetTimer);
-    };
-  }, []);
-
-  return (
-    <AuthContext.Provider value={{ isAuth, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+// Renvoie les tenants réellement accessibles à ce compte : tous pour un
+// admin, uniquement ceux listés dans tenantKeys pour un promoteur (peut en
+// avoir plusieurs à la fois).
+function accessibleTenantsFor(user) {
+  if (!user) return [];
+  if (user.role === "admin") return TENANTS.map((t) => t.key);
+  return user.tenantKeys || [];
 }
 
-// Hook pour utiliser le contexte plus facilement
-export const useAuth = () => useContext(AuthContext);
+// Choisit quel tenant afficher par défaut : celui déjà en localStorage s'il
+// reste accessible à ce compte, sinon le premier accessible.
+function pickCurrentTenant(user, stored) {
+  const accessible = accessibleTenantsFor(user);
+  if (stored && accessible.includes(stored)) return stored;
+  return accessible[0] || TENANTS[0].key;
+}
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentTenant, setCurrentTenantState] = useState(
+    localStorage.getItem(TENANT_STORAGE_KEY) || TENANTS[0].key
+  );
+
+  const refreshMe = useCallback(async () => {
+    if (!getToken()) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+    try {
+      const me = await panelApi("/auth/me");
+      setUser(me);
+      setCurrentTenantState(pickCurrentTenant(me, localStorage.getItem(TENANT_STORAGE_KEY)));
+    } catch {
+      setToken(null);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshMe();
+  }, [refreshMe]);
+
+  async function login(email, password) {
+    const data = await panelApi("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    setToken(data.token);
+    setUser(data.user);
+    setCurrentTenant(pickCurrentTenant(data.user, localStorage.getItem(TENANT_STORAGE_KEY)));
+    return data.user;
+  }
+
+  function logout() {
+    setToken(null);
+    setUser(null);
+  }
+
+  function setCurrentTenant(key) {
+    setCurrentTenantState(key);
+    localStorage.setItem(TENANT_STORAGE_KEY, key);
+  }
+
+  async function changePassword(currentPassword, newPassword) {
+    await panelApi("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    setUser((u) => (u ? { ...u, mustChangePassword: false } : u));
+  }
+
+  const value = {
+    user,
+    loading,
+    isAuthenticated: !!user,
+    isAdmin: user?.role === "admin",
+    isPromoteur: user?.role === "promoteur",
+    currentTenant,
+    accessibleTenants: accessibleTenantsFor(user),
+    setCurrentTenant,
+    login,
+    logout,
+    changePassword,
+    refreshMe,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth doit être utilisé dans <AuthProvider>");
+  return ctx;
+}

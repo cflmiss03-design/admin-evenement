@@ -1,19 +1,13 @@
-# Node
-node_modules/
-npm-debug.log
-yarn-error.log
-package-lock.json
-yarn.lock
+node_modules
+dist
+.netlify/
 
 # Environment files
 .env
 .env.local
 .env.*.local
 
-# Build / Output
-dist/
-.netlify/
-.astro/
+*.log
 
 # OS / IDE
 .DS_Store

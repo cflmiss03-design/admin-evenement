@@ -1,23 +1,45 @@
-import { Routes, Route } from "react-router-dom";
-import AdminLogin from "./pages/AdminLogin.jsx";
-import AdminDashboard from "./pages/AdminDashboard.jsx";
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { ProtectedRoute, AdminOnlyRoute } from "./components/ProtectedRoute.jsx";
+import Layout from "./components/Layout.jsx";
+import Login from "./pages/Login.jsx";
+import ChangePassword from "./pages/ChangePassword.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import VoteHistory from "./pages/VoteHistory.jsx";
+import Candidates from "./pages/Candidates.jsx";
+import VotingPeriod from "./pages/VotingPeriod.jsx";
+import Withdrawals from "./pages/Withdrawals.jsx";
+import TicketSales from "./pages/TicketSales.jsx";
+import TicketTypes from "./pages/TicketTypes.jsx";
+import TicketClaims from "./pages/TicketClaims.jsx";
+import Accounts from "./pages/Accounts.jsx";
+import AuditLog from "./pages/AuditLog.jsx";
 
 export default function App() {
   return (
     <Routes>
-      {/* Login Admin */}
-      <Route path="/admin-missculture-bj" element={<AdminLogin />} />
+      <Route path="/login" element={<Login />} />
 
-      {/* Dashboard protégé */}
-      <Route
-        path="/admin-missculture-bj/dashboard"
-        element={
-          <ProtectedRoute>
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
+      <Route element={<ProtectedRoute />}>
+        <Route path="/changer-mot-de-passe" element={<ChangePassword />} />
+
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/historique-votes" element={<VoteHistory />} />
+          <Route path="/candidats" element={<Candidates />} />
+          <Route path="/periode-de-vote" element={<VotingPeriod />} />
+          <Route path="/retraits" element={<Withdrawals />} />
+          <Route path="/ventes-tickets" element={<TicketSales />} />
+
+          <Route element={<AdminOnlyRoute />}>
+            <Route path="/types-de-tickets" element={<TicketTypes />} />
+            <Route path="/reclamations" element={<TicketClaims />} />
+            <Route path="/comptes" element={<Accounts />} />
+            <Route path="/journal-audit" element={<AuditLog />} />
+          </Route>
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }
