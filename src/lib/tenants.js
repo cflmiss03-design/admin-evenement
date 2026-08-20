@@ -6,6 +6,9 @@
 export const TENANTS = [
   { key: "missculture", label: "Miss Culture Bénin", apiPrefix: "/api" },
   { key: "campusvoice", label: "Campus Voice", apiPrefix: "/api/campusvoice" },
+  { key: "hwendo-topmodel", label: "Hwendo — TOP Modèle Afrique", apiPrefix: "/api/hwendo-topmodel" },
+  { key: "hwendo-createur", label: "Hwendo — Jeune Créateur", apiPrefix: "/api/hwendo-createur" },
+  { key: "hwendo-missendo", label: "Hwendo — Miss Endo-Culture", apiPrefix: "/api/hwendo-missendo" },
 ];
 
 export function getTenant(key) {

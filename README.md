@@ -21,11 +21,24 @@ npm run dev        # http://localhost:5173
 npm run build       # génère dist/
 ```
 
-Déploiement identique aux autres frontends du dépôt : upload manuel de
-`dist/` sur Netlify (voir la note "Frontend Deployment" du dépôt principal).
-
 **Avant le premier déploiement en production**, changer `VITE_API_BASE_URL`
 dans `.env` pour pointer vers l'URL Railway du backend, puis rebuild.
+
+### Cloudflare Pages
+
+- **Build command** : `npm run build`
+- **Build output directory** : `dist`
+- **Root directory** : `/`
+- Variable d'environnement à définir : `VITE_API_BASE_URL` (URL Railway du backend + `/api`)
+- Node.js épinglé via `.node-version` (22), rien à configurer en plus.
+- Le SPA fallback (`public/_redirects` → `/* /index.html 200`) est déjà en
+  place et compatible Cloudflare Pages nativement (même syntaxe que Netlify).
+
+### Netlify (déploiement existant)
+
+Ce dépôt reste aussi déployé sur Netlify via `git push` (voir `netlify.toml`)
+— les deux hébergements peuvent coexister tant que les deux remotes sont
+poussés.
 
 ## Backend — prérequis (server-votes)
 
