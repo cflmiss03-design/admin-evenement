@@ -9,6 +9,7 @@ export const TENANTS = [
   { key: "hwendo-topmodel", label: "Hwendo — TOP Modèle Afrique", apiPrefix: "/api/hwendo-topmodel" },
   { key: "hwendo-createur", label: "Hwendo — Jeune Créateur", apiPrefix: "/api/hwendo-createur" },
   { key: "hwendo-missendo", label: "Hwendo — Miss Endo-Culture", apiPrefix: "/api/hwendo-missendo" },
+  { key: "gbevivi", label: "Miss Gbévivi Bénin", apiPrefix: "/api/gbevivi" },
 ];
 
 export function getTenant(key) {
