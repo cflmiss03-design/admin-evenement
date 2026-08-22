@@ -25,8 +25,11 @@ class ApiError extends Error {
 
 async function request(url, options = {}) {
   const token = getToken();
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   const headers = {
-    "Content-Type": "application/json",
+    // FormData (upload de fichier) : ne jamais fixer Content-Type nous-mêmes,
+    // le navigateur doit poser le boundary multipart lui-même.
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers || {}),
   };
   if (token) headers.Authorization = `Bearer ${token}`;

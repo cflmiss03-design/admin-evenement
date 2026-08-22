@@ -12,6 +12,7 @@ const navItems = [
   { to: "/periode-de-vote", label: "Période de vote", icon: "🗓️", adminOnly: false },
   { to: "/retraits", label: "Retraits", icon: "💸", adminOnly: false },
   { to: "/ventes-tickets", label: "Ventes de tickets", icon: "🧾", adminOnly: false },
+  { to: "/actualites", label: "Actualités", icon: "📰", adminOnly: false },
   { to: "/types-de-tickets", label: "Types de tickets", icon: "🎟️", adminOnly: true },
   { to: "/reclamations", label: "Réclamations tickets", icon: "📮", adminOnly: true },
   { to: "/comptes", label: "Comptes", icon: "👤", adminOnly: true },

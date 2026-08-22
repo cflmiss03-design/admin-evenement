@@ -16,6 +16,7 @@ import Accounts from "./pages/Accounts.jsx";
 import AuditLog from "./pages/AuditLog.jsx";
 import LiveVoteScreen from "./pages/LiveVoteScreen.jsx";
 import Epreuves from "./pages/Epreuves.jsx";
+import News from "./pages/News.jsx";
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/periode-de-vote" element={<VotingPeriod />} />
           <Route path="/retraits" element={<Withdrawals />} />
           <Route path="/ventes-tickets" element={<TicketSales />} />
+          <Route path="/actualites" element={<News />} />
 
           <Route element={<AdminOnlyRoute />}>
             <Route path="/verification-votes" element={<PendingVotes />} />

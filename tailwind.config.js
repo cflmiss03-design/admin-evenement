@@ -1,3 +1,5 @@
+import typography from "@tailwindcss/typography";
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx}"],
@@ -19,5 +21,7 @@ export default {
       },
     },
   },
-  plugins: [],
+  // @tailwindcss/typography : styles "prose" par défaut pour le HTML produit
+  // par l'éditeur riche de la page Actualité (RichTextEditor.jsx).
+  plugins: [typography],
 };
