@@ -22,6 +22,7 @@ export default function VotingPeriod() {
   const [feePercent, setFeePercent] = useState("");
   const [voteLaborPercent, setVoteLaborPercent] = useState("");
   const [ticketLaborPercent, setTicketLaborPercent] = useState("");
+  const [hideVoteCounts, setHideVoteCounts] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -52,6 +53,7 @@ export default function VotingPeriod() {
         // renvoyés aussi bien à l'ADMIN qu'au PROMOTEUR.
         setVoteLaborPercent(String(data.voteLaborPercent ?? 0));
         setTicketLaborPercent(String(data.ticketLaborPercent ?? 0));
+        setHideVoteCounts(!!data.hideVoteCounts);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -171,6 +173,26 @@ export default function VotingPeriod() {
     }
   }
 
+  async function handleToggleHideVoteCounts(e) {
+    const next = e.target.checked;
+    setHideVoteCounts(next);
+    setError(null);
+    setNotice(null);
+    setSaving(true);
+    try {
+      await tenantApi(currentTenant, "/manager/ticket-claims/settings", {
+        method: "PUT",
+        body: JSON.stringify({ hideVoteCounts: next }),
+      });
+      setNotice(next ? "Nombre de votes masqué sur le site public." : "Nombre de votes de nouveau visible sur le site public.");
+    } catch (err) {
+      setError(err.message);
+      setHideVoteCounts(!next); // annule le changement visuel si l'enregistrement échoue
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSaveLabor(e) {
     e.preventDefault();
     const voteValue = Number(voteLaborPercent);
@@ -263,6 +285,25 @@ export default function VotingPeriod() {
               {saving ? "Enregistrement..." : "Enregistrer les dates"}
             </button>
           </form>
+
+          <div className="panel-card mt-6">
+            <p className="mb-1 text-sm font-semibold text-slate-900">Affichage du nombre de votes</p>
+            <p className="mb-4 text-xs text-slate-500">
+              Masque le compteur "Total des votes" sur les cartes et profils candidats du site public — utile pour
+              éviter l'effet "vote de panurge". Les votes continuent d'être comptés normalement ; seul l'affichage
+              public change, cet espace admin garde toujours les vrais chiffres.
+            </p>
+            <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={hideVoteCounts}
+                onChange={handleToggleHideVoteCounts}
+                disabled={saving}
+                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+              />
+              Masquer le nombre de votes sur le site public
+            </label>
+          </div>
 
           {isAdmin && (
             <form onSubmit={handleSaveOverride} className="mt-6 rounded-2xl border border-red-200 bg-red-50/50 p-6 shadow-sm">
