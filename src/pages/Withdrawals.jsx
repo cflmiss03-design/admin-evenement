@@ -16,6 +16,108 @@ function StatusBadge({ status }) {
   return <span className={`badge ${s.cls}`}>{s.label}</span>;
 }
 
+function formatFCFA(n) {
+  return new Intl.NumberFormat("fr-FR").format(Math.round(n || 0)) + " FCFA";
+}
+
+// CHANGED: détail FedaPay/SebPay (voir memory/sebpay_integration.md) —
+// visible ADMIN et PROMOTEUR. N'affiche jamais le montant réellement facturé
+// au votant (majoré des frais) : uniquement le prix officiel, les frais réels
+// SebPay et le net qui en résulte — la majoration reste une marge interne
+// invisible ici comme partout ailleurs côté promoteur.
+function ProviderBreakdown({ balance }) {
+  // CHANGED: affiché dès que l'événement est en mode "Afrique", pas
+  // seulement une fois qu'un premier vote international existe — l'admin/le
+  // promoteur doit pouvoir suivre le détail (à 0 pour l'instant) dès
+  // l'activation, pas seulement rétroactivement.
+  if (balance.paymentType !== "afrique") return null;
+
+  return (
+    <div className="panel-card mb-6">
+      <p className="mb-1 text-sm font-semibold text-slate-900">Répartition Transaction locale / Transaction Internationale</p>
+      <p className="mb-4 text-xs text-slate-500">
+        Pour les transactions internationales, le montant compté est le prix officiel moins les frais réels de
+        l'agrégateur (calculés au moment de chaque paiement) — jamais le montant majoré facturé au votant.
+      </p>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Votes Transaction locale</p>
+          <p className="mt-1 text-lg font-bold text-sky-700">{balance.votesFedapay || 0}</p>
+          <p className="text-xs text-slate-500">{formatFCFA(balance.revenueFedapay)}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Votes Transaction Internationale (net)</p>
+          <p className="mt-1 text-lg font-bold text-orange-700">{balance.votesSebpay || 0}</p>
+          <p className="text-xs text-slate-500">{formatFCFA(balance.revenueSebpayNet)}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Tickets Transaction locale</p>
+          <p className="mt-1 text-lg font-bold text-sky-700">{balance.ticketsFedapay || 0}</p>
+          <p className="text-xs text-slate-500">{formatFCFA(balance.revenueFedapayTickets)}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Tickets Transaction Internationale (net)</p>
+          <p className="mt-1 text-lg font-bold text-orange-700">{balance.ticketsSebpay || 0}</p>
+          <p className="text-xs text-slate-500">{formatFCFA(balance.revenueSebpayTicketsNet)}</p>
+        </div>
+      </div>
+
+      {balance.sebpayVotesByCountry?.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Votes Transaction Internationale par pays</p>
+          <table className="w-full text-left text-sm">
+            <thead className="text-xs uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="py-1.5 pr-4">Pays</th>
+                <th className="py-1.5 pr-4">Votes</th>
+                <th className="py-1.5 pr-4">Frais</th>
+                <th className="py-1.5 pr-4">Net</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {balance.sebpayVotesByCountry.map((row) => (
+                <tr key={row.country}>
+                  <td className="py-1.5 pr-4 font-medium text-slate-900">{row.country}</td>
+                  <td className="py-1.5 pr-4">{row.votes}</td>
+                  <td className="py-1.5 pr-4 text-slate-500">{formatFCFA(row.feeAmount)}</td>
+                  <td className="py-1.5 pr-4 font-medium">{formatFCFA(row.netAmount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {balance.sebpayTicketsByCountry?.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Tickets Transaction Internationale par pays</p>
+          <table className="w-full text-left text-sm">
+            <thead className="text-xs uppercase tracking-wide text-slate-400">
+              <tr>
+                <th className="py-1.5 pr-4">Pays</th>
+                <th className="py-1.5 pr-4">Tickets</th>
+                <th className="py-1.5 pr-4">Frais</th>
+                <th className="py-1.5 pr-4">Net</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {balance.sebpayTicketsByCountry.map((row) => (
+                <tr key={row.country}>
+                  <td className="py-1.5 pr-4 font-medium text-slate-900">{row.country}</td>
+                  <td className="py-1.5 pr-4">{row.count}</td>
+                  <td className="py-1.5 pr-4 text-slate-500">{formatFCFA(row.feeAmount)}</td>
+                  <td className="py-1.5 pr-4 font-medium">{formatFCFA(row.netAmount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Withdrawals() {
   const { currentTenant, isAdmin, user } = useAuth();
   const [requests, setRequests] = useState([]);
@@ -109,6 +211,8 @@ export default function Withdrawals() {
 
       {notice && <p className="mb-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{notice}</p>}
       {error && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+
+      {balance && <ProviderBreakdown balance={balance} />}
 
       {loading ? (
         <p className="text-sm text-slate-500">Chargement...</p>

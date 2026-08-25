@@ -26,7 +26,7 @@ function ProviderBadge({ provider }) {
   const isSebpay = provider === "sebpay";
   return (
     <span className={`badge ${isSebpay ? "bg-orange-100 text-orange-700" : "bg-sky-100 text-sky-700"}`}>
-      {isSebpay ? "SebPay" : "FedaPay"}
+      {isSebpay ? "Transaction Internationale" : "Transaction locale"}
     </span>
   );
 }

@@ -19,12 +19,11 @@ function formatFCFA(n) {
 }
 
 // CHANGED: fournisseur ayant traité le paiement (voir memory/sebpay_integration.md)
-function ProviderBadge({ provider, country }) {
+function ProviderBadge({ provider }) {
   const isSebpay = provider === "sebpay";
   return (
     <span className={`badge ${isSebpay ? "bg-orange-100 text-orange-700" : "bg-sky-100 text-sky-700"}`}>
-      {isSebpay ? "SebPay" : "FedaPay"}
-      {country ? ` · ${country}` : ""}
+      {isSebpay ? "Transaction Internationale" : "Transaction locale"}
     </span>
   );
 }
@@ -144,7 +143,9 @@ export default function VoteHistory() {
                 <tr>
                   <th className="px-4 py-3">Heure</th>
                   <th className="px-4 py-3">Fournisseur</th>
-                  <th className="px-4 py-3">ID Client FedaPay</th>
+                  <th className="px-4 py-3">Pays</th>
+                  <th className="px-4 py-3">Numéro</th>
+                  <th className="px-4 py-3">ID Paiement</th>
                   <th className="px-4 py-3">Candidat</th>
                   <th className="px-4 py-3">Votes</th>
                   <th className="px-4 py-3">Montant payé</th>
@@ -156,8 +157,12 @@ export default function VoteHistory() {
                     <td className="px-4 py-3 text-slate-500">
                       {new Date(e.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                     </td>
-                    <td className="px-4 py-3"><ProviderBadge provider={e.provider} country={e.country} /></td>
-                    <td className="px-4 py-3">{e.fedapayCustomerId || <span className="text-slate-300">—</span>}</td>
+                    <td className="px-4 py-3"><ProviderBadge provider={e.provider} /></td>
+                    <td className="px-4 py-3 text-slate-500">{e.country || <span className="text-slate-300">—</span>}</td>
+                    <td className="px-4 py-3 text-slate-500">{e.telephone || <span className="text-slate-300">—</span>}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                      {e.providerTransactionId || e.fedapayTransactionId || <span className="text-slate-300">—</span>}
+                    </td>
                     <td className="px-4 py-3 font-medium text-slate-900">{e.candidateName || "—"}</td>
                     <td className="px-4 py-3">{e.votes}</td>
                     <td className="px-4 py-3 font-medium">{formatFCFA(e.amount)}</td>
@@ -165,7 +170,7 @@ export default function VoteHistory() {
                 ))}
                 {entries.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                    <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                       Aucun vote aujourd'hui pour l'instant.
                     </td>
                   </tr>
