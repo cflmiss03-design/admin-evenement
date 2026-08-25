@@ -18,6 +18,17 @@ function formatFCFA(n) {
   return new Intl.NumberFormat("fr-FR").format(n || 0) + " FCFA";
 }
 
+// CHANGED: fournisseur ayant traité le paiement (voir memory/sebpay_integration.md)
+function ProviderBadge({ provider, country }) {
+  const isSebpay = provider === "sebpay";
+  return (
+    <span className={`badge ${isSebpay ? "bg-orange-100 text-orange-700" : "bg-sky-100 text-sky-700"}`}>
+      {isSebpay ? "SebPay" : "FedaPay"}
+      {country ? ` · ${country}` : ""}
+    </span>
+  );
+}
+
 export default function VoteHistory() {
   const { currentTenant } = useAuth();
   const [entries, setEntries] = useState([]);
@@ -132,6 +143,7 @@ export default function VoteHistory() {
               <thead>
                 <tr>
                   <th className="px-4 py-3">Heure</th>
+                  <th className="px-4 py-3">Fournisseur</th>
                   <th className="px-4 py-3">ID Client FedaPay</th>
                   <th className="px-4 py-3">Candidat</th>
                   <th className="px-4 py-3">Votes</th>
@@ -144,6 +156,7 @@ export default function VoteHistory() {
                     <td className="px-4 py-3 text-slate-500">
                       {new Date(e.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                     </td>
+                    <td className="px-4 py-3"><ProviderBadge provider={e.provider} country={e.country} /></td>
                     <td className="px-4 py-3">{e.fedapayCustomerId || <span className="text-slate-300">—</span>}</td>
                     <td className="px-4 py-3 font-medium text-slate-900">{e.candidateName || "—"}</td>
                     <td className="px-4 py-3">{e.votes}</td>
@@ -152,7 +165,7 @@ export default function VoteHistory() {
                 ))}
                 {entries.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                       Aucun vote aujourd'hui pour l'instant.
                     </td>
                   </tr>

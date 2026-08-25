@@ -21,6 +21,16 @@ function formatFCFA(n) {
   return new Intl.NumberFormat("fr-FR").format(n || 0) + " FCFA";
 }
 
+// CHANGED: fournisseur ayant traité le paiement (voir memory/sebpay_integration.md)
+function ProviderBadge({ provider }) {
+  const isSebpay = provider === "sebpay";
+  return (
+    <span className={`badge ${isSebpay ? "bg-orange-100 text-orange-700" : "bg-sky-100 text-sky-700"}`}>
+      {isSebpay ? "SebPay" : "FedaPay"}
+    </span>
+  );
+}
+
 export default function TicketSales() {
   const { currentTenant } = useAuth();
   const [sales, setSales] = useState([]);
@@ -174,6 +184,7 @@ export default function TicketSales() {
                   <th className="px-4 py-3">Candidat</th>
                   <th className="px-4 py-3">Qté</th>
                   <th className="px-4 py-3">Montant</th>
+                  <th className="px-4 py-3">Fournisseur</th>
                   <th className="px-4 py-3">Statut</th>
                   <th className="px-4 py-3">Date</th>
                 </tr>
@@ -189,12 +200,13 @@ export default function TicketSales() {
                     <td className="px-4 py-3">{s.candidateCode || "—"}</td>
                     <td className="px-4 py-3">{s.quantity}</td>
                     <td className="px-4 py-3 font-medium">{formatFCFA(s.totalAmount)}</td>
+                    <td className="px-4 py-3"><ProviderBadge provider={s.provider} /></td>
                     <td className="px-4 py-3"><StatusBadge status={s.status} /></td>
                     <td className="px-4 py-3 text-slate-500">{new Date(s.createdAt).toLocaleDateString("fr-FR")}</td>
                   </tr>
                 ))}
                 {sales.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Aucune vente.</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Aucune vente.</td></tr>
                 )}
               </tbody>
             </table>

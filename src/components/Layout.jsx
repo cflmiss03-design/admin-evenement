@@ -17,6 +17,7 @@ const navItems = [
   { to: "/reclamations", label: "Réclamations tickets", icon: "📮", adminOnly: true },
   { to: "/comptes", label: "Comptes", icon: "👤", adminOnly: true },
   { to: "/journal-audit", label: "Journal d'audit", icon: "🧾", adminOnly: true },
+  { to: "/mapping-pays", label: "Mapping pays (SebPay)", icon: "🌍", adminOnly: true },
 ];
 
 function linkClasses({ isActive }) {

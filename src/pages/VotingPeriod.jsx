@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { tenantApi } from "../lib/api.js";
+import { tenantApi, panelApi } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const OVERRIDE_LABELS = {
@@ -19,10 +19,19 @@ export default function VotingPeriod() {
   const [overrideMessage, setOverrideMessage] = useState("");
   const [claimEmail, setClaimEmail] = useState("");
   const [checkinCode, setCheckinCode] = useState("");
-  const [feePercent, setFeePercent] = useState("");
+  // CHANGED: frais dédoublés par fournisseur (voir memory/sebpay_integration.md)
+  const [feePercentFedapay, setFeePercentFedapay] = useState("");
+  const [feePercentSebpay, setFeePercentSebpay] = useState("");
   const [voteLaborPercent, setVoteLaborPercent] = useState("");
   const [ticketLaborPercent, setTicketLaborPercent] = useState("");
   const [hideVoteCounts, setHideVoteCounts] = useState(false);
+  // CHANGED: visibilité de la billetterie sur le site public (admin uniquement)
+  const [ticketsEnabled, setTicketsEnabled] = useState(false);
+  // CHANGED: mode de paiement Local/Afrique de l'événement
+  const [paymentType, setPaymentType] = useState("local");
+  const [activeCountries, setActiveCountries] = useState([]);
+  const [allCountries, setAllCountries] = useState([]);
+  const [countriesLoading, setCountriesLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -46,22 +55,38 @@ export default function VotingPeriod() {
         setCheckinCode(data.ticketCheckinCode || "");
         // Absent de la réponse pour un compte PROMOTEUR (jamais exposé) —
         // reste alors à "" sans erreur.
-        if (data.voteFraisTransaction !== undefined) {
-          setFeePercent(String(data.voteFraisTransaction));
+        if (data.voteFraisTransactionFedapay !== undefined) {
+          setFeePercentFedapay(String(data.voteFraisTransactionFedapay));
+          setFeePercentSebpay(String(data.voteFraisTransactionSebpay ?? 0));
         }
         // Contrairement aux frais de transaction, ces pourcentages sont
         // renvoyés aussi bien à l'ADMIN qu'au PROMOTEUR.
         setVoteLaborPercent(String(data.voteLaborPercent ?? 0));
         setTicketLaborPercent(String(data.ticketLaborPercent ?? 0));
         setHideVoteCounts(!!data.hideVoteCounts);
+        setPaymentType(data.paymentType || "local");
+        setActiveCountries(data.activeCountries || []);
+        setTicketsEnabled(!!data.ticketsEnabled);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }
 
+  // Mapping global pays→fournisseur (voir memory/sebpay_integration.md) — pas
+  // lié au tenant courant, chargé une seule fois. Sert à peupler la liste des
+  // pays activables pour cet événement (Étape 2.1).
+  function loadCountries() {
+    setCountriesLoading(true);
+    panelApi("/country-provider-mapping")
+      .then(setAllCountries)
+      .catch((err) => setError(err.message))
+      .finally(() => setCountriesLoading(false));
+  }
+
   useEffect(() => {
     setNotice(null);
     load();
+    loadCountries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTenant]);
 
@@ -151,9 +176,13 @@ export default function VotingPeriod() {
 
   async function handleSaveFee(e) {
     e.preventDefault();
-    const value = Number(feePercent);
-    if (!Number.isFinite(value) || value < 0 || value > 100) {
-      setError("Le pourcentage doit être un nombre entre 0 et 100.");
+    const fedapayValue = Number(feePercentFedapay);
+    const sebpayValue = Number(feePercentSebpay);
+    if (
+      !Number.isFinite(fedapayValue) || fedapayValue < 0 || fedapayValue > 100 ||
+      !Number.isFinite(sebpayValue) || sebpayValue < 0 || sebpayValue > 100
+    ) {
+      setError("Les deux pourcentages doivent être des nombres entre 0 et 100.");
       return;
     }
     setSaving(true);
@@ -162,7 +191,7 @@ export default function VotingPeriod() {
     try {
       await tenantApi(currentTenant, "/manager/ticket-claims/settings", {
         method: "PUT",
-        body: JSON.stringify({ voteFraisTransaction: value }),
+        body: JSON.stringify({ voteFraisTransactionFedapay: fedapayValue, voteFraisTransactionSebpay: sebpayValue }),
       });
       setNotice("Frais de transaction mis à jour.");
       load();
@@ -188,6 +217,55 @@ export default function VotingPeriod() {
     } catch (err) {
       setError(err.message);
       setHideVoteCounts(!next); // annule le changement visuel si l'enregistrement échoue
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleToggleTicketsEnabled(e) {
+    const next = e.target.checked;
+    setTicketsEnabled(next);
+    setError(null);
+    setNotice(null);
+    setSaving(true);
+    try {
+      await tenantApi(currentTenant, "/manager/ticket-claims/settings", {
+        method: "PUT",
+        body: JSON.stringify({ ticketsEnabled: next }),
+      });
+      setNotice(next ? "Billetterie activée sur le site public." : "Billetterie masquée sur le site public.");
+    } catch (err) {
+      setError(err.message);
+      setTicketsEnabled(!next); // annule le changement visuel si l'enregistrement échoue
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // CHANGED: mode de paiement Local/Afrique (voir memory/sebpay_integration.md)
+  function toggleCountry(code) {
+    setActiveCountries((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  }
+
+  async function handleSavePaymentType(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await tenantApi(currentTenant, "/manager/ticket-claims/settings", {
+        method: "PUT",
+        body: JSON.stringify({
+          paymentType,
+          activeCountries: paymentType === "afrique" ? activeCountries : [],
+        }),
+      });
+      setNotice("Mode de paiement mis à jour.");
+      load();
+    } catch (err) {
+      setError(err.message);
     } finally {
       setSaving(false);
     }
@@ -306,6 +384,27 @@ export default function VotingPeriod() {
           </div>
 
           {isAdmin && (
+            <div className="panel-card mt-6">
+              <p className="mb-1 text-sm font-semibold text-slate-900">Billetterie (admin uniquement)</p>
+              <p className="mb-4 text-xs text-slate-500">
+                Contrôle la visibilité de la billetterie sur le site public de cet événement — désactivée par
+                défaut : le lien "Tickets" est masqué du menu, la page /tickets redirige vers l'accueil, et l'achat
+                est bloqué même par appel direct à l'API. Réglage indépendant par événement.
+              </p>
+              <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={ticketsEnabled}
+                  onChange={handleToggleTicketsEnabled}
+                  disabled={saving}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                />
+                Activer la billetterie sur le site public
+              </label>
+            </div>
+          )}
+
+          {isAdmin && (
             <form onSubmit={handleSaveOverride} className="mt-6 rounded-2xl border border-red-200 bg-red-50/50 p-6 shadow-sm">
               <p className="mb-1 text-sm font-semibold text-slate-900">Bouton spécial (admin uniquement)</p>
               <p className="mb-4 text-xs text-slate-500">
@@ -382,20 +481,35 @@ export default function VotingPeriod() {
             <form onSubmit={handleSaveFee} className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm">
               <p className="mb-1 text-sm font-semibold text-slate-900">Frais de transaction — vote (admin uniquement)</p>
               <p className="mb-4 text-xs text-slate-500">
-                Pourcentage ajouté au prix officiel du vote au moment du paiement (FedaPay + taxes).
+                Pourcentage ajouté au prix officiel du vote au moment du paiement (agrégateur + taxes) — un réglage
+                distinct par fournisseur, leurs frais réels étant différents.
                 Jamais affiché publiquement ni visible par un compte promoteur — n'entre jamais dans les calculs de revenu.
               </p>
-              <div className="max-w-[160px]">
-                <label className="field-label">Pourcentage (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={feePercent}
-                  onChange={(e) => setFeePercent(e.target.value)}
-                  className="field-input"
-                />
+              <div className="grid max-w-sm grid-cols-2 gap-3">
+                <div>
+                  <label className="field-label">FedaPay (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={feePercentFedapay}
+                    onChange={(e) => setFeePercentFedapay(e.target.value)}
+                    className="field-input"
+                  />
+                </div>
+                <div>
+                  <label className="field-label">SebPay (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={feePercentSebpay}
+                    onChange={(e) => setFeePercentSebpay(e.target.value)}
+                    className="field-input"
+                  />
+                </div>
               </div>
               <button
                 type="submit"
@@ -403,6 +517,65 @@ export default function VotingPeriod() {
                 className="mt-4 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
               >
                 {saving ? "Enregistrement..." : "Enregistrer les frais"}
+              </button>
+            </form>
+          )}
+
+          {isAdmin && (
+            <form onSubmit={handleSavePaymentType} className="mt-6 rounded-2xl border border-sky-200 bg-sky-50/50 p-6 shadow-sm">
+              <p className="mb-1 text-sm font-semibold text-slate-900">Mode de paiement (admin uniquement)</p>
+              <p className="mb-4 text-xs text-slate-500">
+                "Local" : FedaPay uniquement, comme aujourd'hui. "Afrique" : le votant choisit son pays, routé vers
+                FedaPay ou SebPay selon le{" "}
+                <a href="/mapping-pays" className="underline">mapping global pays→fournisseur</a>.
+              </p>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="radio" name="paymentType" value="local" checked={paymentType === "local"} onChange={(e) => setPaymentType(e.target.value)} />
+                  <span>Local — FedaPay uniquement</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="radio" name="paymentType" value="afrique" checked={paymentType === "afrique"} onChange={(e) => setPaymentType(e.target.value)} />
+                  <span>Afrique — dropdown pays, FedaPay ou SebPay selon le mapping</span>
+                </label>
+              </div>
+
+              {paymentType === "afrique" && (
+                <div className="mt-4">
+                  <label className="field-label">Pays activés pour cet événement</label>
+                  {countriesLoading ? (
+                    <p className="text-xs text-slate-400">Chargement des pays...</p>
+                  ) : allCountries.length === 0 ? (
+                    <p className="text-xs text-slate-400">
+                      Aucun pays disponible — configurez d'abord le{" "}
+                      <a href="/mapping-pays" className="underline">mapping global</a>.
+                    </p>
+                  ) : (
+                    <div className="grid max-h-56 grid-cols-2 gap-x-4 gap-y-1.5 overflow-y-auto rounded-lg border border-slate-200 p-3 sm:grid-cols-3">
+                      {allCountries.map((c) => (
+                        <label key={c.code} className="flex items-center gap-2 text-sm text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={activeCountries.includes(c.code)}
+                            onChange={() => toggleCountry(c.code)}
+                          />
+                          <span>
+                            {c.name}{" "}
+                            <span className="text-[11px] uppercase text-slate-400">({c.provider})</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="mt-4 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-60"
+              >
+                {saving ? "Enregistrement..." : "Enregistrer le mode de paiement"}
               </button>
             </form>
           )}

@@ -6,7 +6,8 @@ import { useAuth } from "../context/AuthContext.jsx";
 const RAW_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 const ORIGIN = RAW_BASE.replace(/\/api\/?$/, "");
 
-const emptyForm = { nom: "", description: "", prix: "", fraisTransaction: "0", zones: "[]", svg: null };
+// CHANGED: frais dédoublés par fournisseur (FedaPay/SebPay, voir memory/sebpay_integration.md).
+const emptyForm = { nom: "", description: "", prix: "", fraisTransactionFedapay: "0", fraisTransactionSebpay: "0", zones: "[]", svg: null };
 
 export default function TicketTypes() {
   const { currentTenant } = useAuth();
@@ -55,7 +56,10 @@ export default function TicketTypes() {
       nom: t.nom,
       description: t.description || "",
       prix: t.prix,
-      fraisTransaction: t.fraisTransaction ?? "0",
+      // Repli sur l'ancien champ unique tant que ce type n'a pas encore été
+      // reconfiguré (voir models/TicketType.js).
+      fraisTransactionFedapay: t.fraisTransactionFedapay ?? t.fraisTransaction ?? "0",
+      fraisTransactionSebpay: t.fraisTransactionSebpay ?? "0",
       zones: JSON.stringify(t.zones || [], null, 2),
       svg: null,
     });
@@ -75,7 +79,8 @@ export default function TicketTypes() {
       fd.append("nom", form.nom);
       fd.append("description", form.description);
       fd.append("prix", form.prix);
-      fd.append("fraisTransaction", form.fraisTransaction);
+      fd.append("fraisTransactionFedapay", form.fraisTransactionFedapay);
+      fd.append("fraisTransactionSebpay", form.fraisTransactionSebpay);
       fd.append("zones", form.zones);
       if (form.svg) fd.append("svg", form.svg);
 
@@ -174,14 +179,18 @@ export default function TicketTypes() {
                 <label className="field-label">Description</label>
                 <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="field-input" />
               </div>
+              <div>
+                <label className="field-label">Prix (FCFA)</label>
+                <input required type="number" value={form.prix} onChange={(e) => setForm({ ...form, prix: e.target.value })} className="field-input" />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="field-label">Prix (FCFA)</label>
-                  <input required type="number" value={form.prix} onChange={(e) => setForm({ ...form, prix: e.target.value })} className="field-input" />
+                  <label className="field-label">Frais FedaPay (%)</label>
+                  <input type="number" min="0" max="100" value={form.fraisTransactionFedapay} onChange={(e) => setForm({ ...form, fraisTransactionFedapay: e.target.value })} className="field-input" />
                 </div>
                 <div>
-                  <label className="field-label">Frais transaction (%)</label>
-                  <input type="number" min="0" max="100" value={form.fraisTransaction} onChange={(e) => setForm({ ...form, fraisTransaction: e.target.value })} className="field-input" />
+                  <label className="field-label">Frais SebPay (%)</label>
+                  <input type="number" min="0" max="100" value={form.fraisTransactionSebpay} onChange={(e) => setForm({ ...form, fraisTransactionSebpay: e.target.value })} className="field-input" />
                 </div>
               </div>
               <div>

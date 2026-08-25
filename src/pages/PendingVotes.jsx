@@ -9,6 +9,16 @@ function formatDateTime(d) {
   return d ? new Date(d).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "—";
 }
 
+// CHANGED: fournisseur ayant traité le paiement (voir memory/sebpay_integration.md)
+function ProviderBadge({ provider }) {
+  const isSebpay = provider === "sebpay";
+  return (
+    <span className={`badge ${isSebpay ? "bg-orange-100 text-orange-700" : "bg-sky-100 text-sky-700"}`}>
+      {isSebpay ? "SebPay" : "FedaPay"}
+    </span>
+  );
+}
+
 export default function PendingVotes() {
   const { currentTenant } = useAuth();
   const [enabled, setEnabled] = useState(false);
@@ -118,6 +128,7 @@ export default function PendingVotes() {
               <thead>
                 <tr>
                   <th className="px-4 py-3">Candidat</th>
+                  <th className="px-4 py-3">Fournisseur</th>
                   <th className="px-4 py-3">Votes</th>
                   <th className="px-4 py-3">Montant</th>
                   <th className="px-4 py-3">ID client FedaPay</th>
@@ -129,6 +140,7 @@ export default function PendingVotes() {
                 {pending.map((p) => (
                   <tr key={p._id}>
                     <td className="px-4 py-3 font-medium text-slate-900">{p.candidateName || "—"}</td>
+                    <td className="px-4 py-3"><ProviderBadge provider={p.provider} /></td>
                     <td className="px-4 py-3">{p.votes}</td>
                     <td className="px-4 py-3 font-medium">{formatFCFA(p.amount)}</td>
                     <td className="px-4 py-3 text-slate-500">{p.fedapayCustomerId ?? "—"}</td>
@@ -152,7 +164,7 @@ export default function PendingVotes() {
                   </tr>
                 ))}
                 {pending.length === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Aucun vote en attente.</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Aucun vote en attente.</td></tr>
                 )}
               </tbody>
             </table>
