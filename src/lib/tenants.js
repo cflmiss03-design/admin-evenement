@@ -10,6 +10,7 @@ export const TENANTS = [
   { key: "hwendo-createur", label: "Hwendo — Jeune Créateur", apiPrefix: "/api/hwendo-createur" },
   { key: "hwendo-missendo", label: "Hwendo — Miss Endo-Culture", apiPrefix: "/api/hwendo-missendo" },
   { key: "gbevivi", label: "Miss Gbévivi Bénin", apiPrefix: "/api/gbevivi" },
+  { key: "gbevivi-theatre", label: "Gbévivi — Théâtre Culturel", apiPrefix: "/api/gbevivi-theatre" },
   // Tenant technique (pas un événement de vote) : contenu partagé par tout
   // le site Hwendo, pour l'instant uniquement la page Actualité. Sélectionner
   // ce tenant puis aller sur "Actualités" dans le menu.
