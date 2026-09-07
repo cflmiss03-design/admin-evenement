@@ -20,6 +20,16 @@ function formatFCFA(n) {
   return new Intl.NumberFormat("fr-FR").format(Math.round(n || 0)) + " FCFA";
 }
 
+// Même barème que computeUrgentFee côté serveur (routes/withdrawals.js) —
+// dupliqué ici uniquement pour l'aperçu instantané dans le formulaire ; le
+// frais réellement appliqué est toujours recalculé et figé côté serveur.
+function computeUrgentFeePreview(montant) {
+  if (!montant || montant <= 0) return 0;
+  if (montant <= 10000) return 2000;
+  if (montant <= 50000) return 3000;
+  return 5000;
+}
+
 // CHANGED: détail FedaPay/SebPay (voir memory/sebpay_integration.md) —
 // visible ADMIN et PROMOTEUR. N'affiche jamais le montant réellement facturé
 // au votant (majoré des frais) : uniquement le prix officiel, les frais réels
@@ -126,7 +136,7 @@ export default function Withdrawals() {
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ nom: "", prenoms: "", moyen: "MTN Mobile Money", numero: "", montant: "" });
+  const [form, setForm] = useState({ nom: "", prenoms: "", moyen: "MTN Mobile Money", numero: "", montant: "", urgent: false });
   const [saving, setSaving] = useState(false);
 
   function load() {
@@ -161,7 +171,7 @@ export default function Withdrawals() {
       });
       setNotice("Demande de retrait envoyée.");
       setShowForm(false);
-      setForm({ nom: "", prenoms: "", moyen: "MTN Mobile Money", numero: "", montant: "" });
+      setForm({ nom: "", prenoms: "", moyen: "MTN Mobile Money", numero: "", montant: "", urgent: false });
       load();
     } catch (err) {
       setError(err.message);
@@ -239,8 +249,20 @@ export default function Withdrawals() {
                     {r.requestedByEmail && <p className="text-xs text-slate-400">par {r.requestedByEmail}</p>}
                   </td>
                   <td className="px-4 py-3">{r.moyen}</td>
-                  <td className="px-4 py-3 font-medium">{new Intl.NumberFormat("fr-FR").format(r.montant)} FCFA</td>
-                  <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+                  <td className="px-4 py-3">
+                    <p className="font-medium">{new Intl.NumberFormat("fr-FR").format(r.montant)} FCFA</p>
+                    {r.urgent && (
+                      <p className="text-xs text-amber-600">+ {formatFCFA(r.frais)} frais urgent</p>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <StatusBadge status={r.status} />
+                      {r.urgent && (
+                        <span className="badge bg-amber-100 text-amber-700">⚡ URGENT</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-slate-500">{new Date(r.createdAt).toLocaleDateString("fr-FR")}</td>
                   <td className="px-4 py-3 text-slate-500">
                     {r.reviewedAt
@@ -306,6 +328,26 @@ export default function Withdrawals() {
                 {balance && (
                   <p className="mt-1 text-xs text-slate-400">
                     Disponible : {new Intl.NumberFormat("fr-FR").format(balance.soldeDisponible || 0)} FCFA
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, urgent: !form.urgent })}
+                  className={`w-full rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                    form.urgent
+                      ? "border-amber-500 bg-amber-50 text-amber-700"
+                      : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {form.urgent ? "⚡ Retrait urgent activé" : "⚡ Retrait urgent"}
+                </button>
+                {form.urgent && (
+                  <p className="mt-1.5 text-xs text-amber-700">
+                    Frais de traitement urgent : <span className="font-semibold">{formatFCFA(computeUrgentFeePreview(Number(form.montant)))}</span> — s'ajoute
+                    au montant demandé (prélevé sur votre solde disponible, en plus du montant reçu).
                   </p>
                 )}
               </div>
