@@ -200,6 +200,24 @@ export default function Withdrawals() {
     }
   }
 
+  // Bascule le frais de traitement urgent sur une demande pas encore traitée
+  // (ADMIN uniquement — voir routes/withdrawals.js#PATCH /:id/urgent). Le
+  // backend refuse déjà si la demande est validée/rejetée/payée ; le bouton
+  // n'est de toute façon affiché que pour "en_attente"/"en_cours" ci-dessous.
+  async function toggleUrgent(id, urgent) {
+    setError(null);
+    try {
+      await tenantApi(currentTenant, `/withdrawals/${id}/urgent`, {
+        method: "PATCH",
+        body: JSON.stringify({ urgent }),
+      });
+      setNotice(urgent ? "Frais de traitement urgent activé." : "Frais de traitement urgent désactivé.");
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   return (
     <div>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -272,7 +290,10 @@ export default function Withdrawals() {
                   {isAdmin && (
                     <td className="px-4 py-3 text-right">
                       {(r.status === "en_attente" || r.status === "en_cours") ? (
-                        <div className="flex justify-end gap-2">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button onClick={() => toggleUrgent(r._id, !r.urgent)} className="text-amber-600 hover:underline">
+                            {r.urgent ? "Désactiver urgent" : "Activer urgent"}
+                          </button>
                           <button onClick={() => review(r._id, "validee")} className="text-brand-600 hover:underline">Valider</button>
                           <button onClick={() => review(r._id, "rejetee")} className="text-red-600 hover:underline">Rejeter</button>
                         </div>
