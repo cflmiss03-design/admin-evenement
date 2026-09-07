@@ -85,7 +85,7 @@ export default function TicketTypes() {
       if (form.svg) fd.append("svg", form.svg);
 
       if (editing === "new") {
-        if (!form.svg) throw new Error("Le fichier SVG est requis pour un nouveau type.");
+        if (!form.svg) throw new Error("Le fichier du modèle (SVG, PNG ou JPG) est requis pour un nouveau type.");
         await authedFetch(base, { method: "POST", body: fd });
         setNotice("Type de ticket créé.");
       } else {
@@ -195,9 +195,17 @@ export default function TicketTypes() {
               </div>
               <div>
                 <label className="field-label">
-                  Fichier SVG {editing === "new" ? "(requis)" : "(laisser vide pour ne pas changer)"}
+                  Fichier du modèle — SVG, PNG ou JPG {editing === "new" ? "(requis)" : "(laisser vide pour ne pas changer)"}
                 </label>
-                <input type="file" accept=".svg,image/svg+xml" onChange={(e) => setForm({ ...form, svg: e.target.files[0] })} className="w-full text-sm" />
+                <input
+                  type="file"
+                  accept=".svg,image/svg+xml,.png,image/png,.jpg,.jpeg,image/jpeg"
+                  onChange={(e) => setForm({ ...form, svg: e.target.files[0] })}
+                  className="w-full text-sm"
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  Le SVG reste net à toute taille ; un PNG/JPG doit déjà être en haute résolution.
+                </p>
               </div>
               <div>
                 <label className="field-label">
