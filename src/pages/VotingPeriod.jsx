@@ -27,6 +27,10 @@ export default function VotingPeriod() {
   const [hideVoteCounts, setHideVoteCounts] = useState(false);
   // CHANGED: visibilité de la billetterie sur le site public (admin uniquement)
   const [ticketsEnabled, setTicketsEnabled] = useState(false);
+  // CHANGED: collecte de dons (tenant amp-benin, admin uniquement)
+  const [donationsEnabled, setDonationsEnabled] = useState(false);
+  const [donationMinAmount, setDonationMinAmount] = useState("");
+  const [donationLaborPercent, setDonationLaborPercent] = useState("");
   // CHANGED: mode de paiement Local/Afrique de l'événement
   const [paymentType, setPaymentType] = useState("local");
   const [activeCountries, setActiveCountries] = useState([]);
@@ -67,6 +71,9 @@ export default function VotingPeriod() {
         setPaymentType(data.paymentType || "local");
         setActiveCountries(data.activeCountries || []);
         setTicketsEnabled(!!data.ticketsEnabled);
+        setDonationsEnabled(!!data.donationsEnabled);
+        setDonationMinAmount(String(data.donationMinAmount ?? 100));
+        setDonationLaborPercent(String(data.donationLaborPercent ?? 0));
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -242,6 +249,50 @@ export default function VotingPeriod() {
     }
   }
 
+  async function handleToggleDonationsEnabled(e) {
+    const next = e.target.checked;
+    setDonationsEnabled(next);
+    setError(null);
+    setNotice(null);
+    setSaving(true);
+    try {
+      await tenantApi(currentTenant, "/manager/ticket-claims/settings", {
+        method: "PUT",
+        body: JSON.stringify({ donationsEnabled: next }),
+      });
+      setNotice(next ? "Collecte de dons activée." : "Collecte de dons désactivée.");
+    } catch (err) {
+      setError(err.message);
+      setDonationsEnabled(!next);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSaveDonationMinAmount(e) {
+    e.preventDefault();
+    const value = Number(donationMinAmount);
+    if (!Number.isFinite(value) || value < 1) {
+      setError("Le montant minimum doit être un nombre positif.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await tenantApi(currentTenant, "/manager/ticket-claims/settings", {
+        method: "PUT",
+        body: JSON.stringify({ donationMinAmount: value }),
+      });
+      setNotice("Montant minimum mis à jour.");
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   // CHANGED: mode de paiement Local/Afrique (voir memory/sebpay_integration.md)
   function toggleCountry(code) {
     setActiveCountries((prev) =>
@@ -275,8 +326,13 @@ export default function VotingPeriod() {
     e.preventDefault();
     const voteValue = Number(voteLaborPercent);
     const ticketValue = Number(ticketLaborPercent);
-    if (!Number.isFinite(voteValue) || voteValue < 0 || voteValue > 100 || !Number.isFinite(ticketValue) || ticketValue < 0 || ticketValue > 100) {
-      setError("Les deux pourcentages doivent être des nombres entre 0 et 100.");
+    const donationValue = Number(donationLaborPercent);
+    if (
+      !Number.isFinite(voteValue) || voteValue < 0 || voteValue > 100 ||
+      !Number.isFinite(ticketValue) || ticketValue < 0 || ticketValue > 100 ||
+      !Number.isFinite(donationValue) || donationValue < 0 || donationValue > 100
+    ) {
+      setError("Les trois pourcentages doivent être des nombres entre 0 et 100.");
       return;
     }
     setSaving(true);
@@ -285,7 +341,7 @@ export default function VotingPeriod() {
     try {
       await tenantApi(currentTenant, "/manager/ticket-claims/settings", {
         method: "PUT",
-        body: JSON.stringify({ voteLaborPercent: voteValue, ticketLaborPercent: ticketValue }),
+        body: JSON.stringify({ voteLaborPercent: voteValue, ticketLaborPercent: ticketValue, donationLaborPercent: donationValue }),
       });
       setNotice("Pourcentages main d'œuvre mis à jour.");
       load();
@@ -401,6 +457,43 @@ export default function VotingPeriod() {
                 />
                 Activer la billetterie sur le site public
               </label>
+            </div>
+          )}
+
+          {isAdmin && (
+            <div className="panel-card mt-6">
+              <p className="mb-1 text-sm font-semibold text-slate-900">Collecte de dons (admin uniquement)</p>
+              <p className="mb-4 text-xs text-slate-500">
+                Contrôle si l'API accepte les dons pour cet événement — désactivée par défaut. Concerne
+                principalement le tenant amp-benin, dont le formulaire de don est construit et hébergé par l'ONG
+                elle-même (ampbenin.org), qui appelle cette API directement.
+              </p>
+              <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={donationsEnabled}
+                  onChange={handleToggleDonationsEnabled}
+                  disabled={saving}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                />
+                Activer la collecte de dons
+              </label>
+
+              <form onSubmit={handleSaveDonationMinAmount} className="mt-4 flex items-end gap-3">
+                <div>
+                  <label className="field-label">Montant minimum (FCFA)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={donationMinAmount}
+                    onChange={(e) => setDonationMinAmount(e.target.value)}
+                    className="field-input w-40"
+                  />
+                </div>
+                <button type="submit" disabled={saving} className="btn-secondary">
+                  {saving ? "..." : "Enregistrer"}
+                </button>
+              </form>
             </div>
           )}
 
@@ -584,10 +677,11 @@ export default function VotingPeriod() {
             <form onSubmit={handleSaveLabor} className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-6 shadow-sm">
               <p className="mb-1 text-sm font-semibold text-slate-900">Pourcentage main d'œuvre (admin uniquement)</p>
               <p className="mb-4 text-xs text-slate-500">
-                Commission prélevée par l'entreprise — un pourcentage distinct pour les votes et pour les tickets.
-                Contrairement aux frais de transaction, ces pourcentages et le revenu net qui en résulte sont visibles par le compte promoteur.
+                Commission prélevée par l'entreprise — un pourcentage distinct pour les votes, les tickets et les
+                dons. Contrairement aux frais de transaction, ces pourcentages et le revenu net qui en résulte sont
+                visibles par le compte promoteur.
               </p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
                   <label className="field-label">Votes (%)</label>
                   <input
@@ -609,6 +703,18 @@ export default function VotingPeriod() {
                     step="0.1"
                     value={ticketLaborPercent}
                     onChange={(e) => setTicketLaborPercent(e.target.value)}
+                    className="field-input"
+                  />
+                </div>
+                <div>
+                  <label className="field-label">Dons (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={donationLaborPercent}
+                    onChange={(e) => setDonationLaborPercent(e.target.value)}
                     className="field-input"
                   />
                 </div>

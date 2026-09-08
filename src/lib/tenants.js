@@ -15,6 +15,9 @@ export const TENANTS = [
   // le site Hwendo, pour l'instant uniquement la page Actualité. Sélectionner
   // ce tenant puis aller sur "Actualités" dans le menu.
   { key: "hwendo-site", label: "Hwendo — Actualités (site)", apiPrefix: "/api/hwendo-site" },
+  // Collecte de dons pour l'ONG AMP Bénin — site public externe (ampbenin.org,
+  // construit par l'ONG), seuls le backend et cet espace admin sont chez nous.
+  { key: "amp-benin", label: "AMP Bénin — Dons", apiPrefix: "/api/amp-benin" },
 ];
 
 export function getTenant(key) {
