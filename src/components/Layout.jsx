@@ -3,22 +3,36 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { TENANTS, getTenant } from "../lib/tenants.js";
 
+// `kinds` : quels types de tenant (voir lib/tenants.js) voient cette section
+// — un tenant "donation" (ex: amp-benin) n'a ni candidats, ni votes, ni
+// tickets : ces sections n'ont aucun sens pour un promoteur qui n'en gère
+// que la collecte de dons, donc masquées plutôt que juste vides/inutiles.
+// `labelByKind` : libellé de remplacement pour un type donné (ex: la page
+// "/periode-de-vote" reste utile à un tenant "donation" — elle contient
+// aussi les réglages de dons — mais son nom n'a plus de sens tel quel).
 const navItems = [
-  { to: "/dashboard", label: "Tableau de bord", icon: "📊", adminOnly: false },
-  { to: "/historique-votes", label: "Historique des votes", icon: "🕐", adminOnly: false },
-  { to: "/verification-votes", label: "Vérification des votes", icon: "🔍", adminOnly: true },
-  { to: "/candidats", label: "Candidats", icon: "🎤", adminOnly: false },
-  { to: "/resultats-officiels", label: "Résultats officiels", icon: "🏆", adminOnly: true },
-  { to: "/periode-de-vote", label: "Période de vote", icon: "🗓️", adminOnly: false },
-  { to: "/retraits", label: "Retraits", icon: "💸", adminOnly: false },
-  { to: "/ventes-tickets", label: "Ventes de tickets", icon: "🧾", adminOnly: false },
-  { to: "/dons", label: "Dons", icon: "💝", adminOnly: false },
-  { to: "/actualites", label: "Actualités", icon: "📰", adminOnly: false },
-  { to: "/types-de-tickets", label: "Types de tickets", icon: "🎟️", adminOnly: true },
-  { to: "/reclamations", label: "Réclamations tickets", icon: "📮", adminOnly: true },
-  { to: "/comptes", label: "Comptes", icon: "👤", adminOnly: true },
-  { to: "/journal-audit", label: "Journal d'audit", icon: "🧾", adminOnly: true },
-  { to: "/mapping-pays", label: "Mapping pays (SebPay)", icon: "🌍", adminOnly: true },
+  { to: "/dashboard", label: "Tableau de bord", icon: "📊", adminOnly: false, kinds: ["vote", "donation"] },
+  { to: "/historique-votes", label: "Historique des votes", icon: "🕐", adminOnly: false, kinds: ["vote"] },
+  { to: "/verification-votes", label: "Vérification des votes", icon: "🔍", adminOnly: true, kinds: ["vote"] },
+  { to: "/candidats", label: "Candidats", icon: "🎤", adminOnly: false, kinds: ["vote"] },
+  { to: "/resultats-officiels", label: "Résultats officiels", icon: "🏆", adminOnly: true, kinds: ["vote"] },
+  {
+    to: "/periode-de-vote",
+    label: "Période de vote",
+    labelByKind: { donation: "Réglages" },
+    icon: "🗓️",
+    adminOnly: false,
+    kinds: ["vote", "donation"],
+  },
+  { to: "/retraits", label: "Retraits", icon: "💸", adminOnly: false, kinds: ["vote", "donation"] },
+  { to: "/ventes-tickets", label: "Ventes de tickets", icon: "🧾", adminOnly: false, kinds: ["vote"] },
+  { to: "/dons", label: "Dons", icon: "💝", adminOnly: false, kinds: ["donation"] },
+  { to: "/actualites", label: "Actualités", icon: "📰", adminOnly: false, kinds: ["vote"] },
+  { to: "/types-de-tickets", label: "Types de tickets", icon: "🎟️", adminOnly: true, kinds: ["vote"] },
+  { to: "/reclamations", label: "Réclamations tickets", icon: "📮", adminOnly: true, kinds: ["vote"] },
+  { to: "/comptes", label: "Comptes", icon: "👤", adminOnly: true, kinds: ["vote", "donation"] },
+  { to: "/journal-audit", label: "Journal d'audit", icon: "🧾", adminOnly: true, kinds: ["vote", "donation"] },
+  { to: "/mapping-pays", label: "Mapping pays (SebPay)", icon: "🌍", adminOnly: true, kinds: ["vote", "donation"] },
 ];
 
 function linkClasses({ isActive }) {
@@ -33,6 +47,7 @@ function linkClasses({ isActive }) {
 export default function Layout() {
   const { user, isAdmin, logout, currentTenant, setCurrentTenant, accessibleTenants } = useAuth();
   const tenant = getTenant(currentTenant);
+  const tenantKind = tenant?.kind || "vote";
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -70,7 +85,7 @@ export default function Layout() {
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-base">🗳️</span>
               Espace Admin
             </p>
-            <p className="mt-1 text-xs text-brand-100">Plateforme de vote</p>
+            <p className="mt-1 text-xs text-brand-100">{tenantKind === "donation" ? "Plateforme de dons" : "Plateforme de vote"}</p>
           </div>
           <button
             onClick={() => setMobileOpen(false)}
@@ -105,27 +120,30 @@ export default function Layout() {
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
           {navItems
-            .filter((item) => !item.adminOnly || isAdmin)
+            .filter((item) => (!item.adminOnly || isAdmin) && item.kinds.includes(tenantKind))
             .map((item) => (
               <NavLink key={item.to} to={item.to} className={linkClasses}>
                 <span className="text-base">{item.icon}</span>
-                <span>{item.label}</span>
+                <span>{item.labelByKind?.[tenantKind] || item.label}</span>
               </NavLink>
             ))}
         </nav>
 
-        <div className="border-t border-slate-200 px-5 py-3">
-          <a
-            href={`/direct/${currentTenant}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-all duration-150 hover:bg-slate-100 hover:text-slate-900"
-          >
-            <span className="text-base">🖥️</span>
-            <span>Écran de vote en direct</span>
-          </a>
-          <p className="px-3 pb-1 text-[11px] text-slate-400">Page publique, à projeter — aucune connexion requise pour l'ouvrir.</p>
-        </div>
+        {/* Sans objet pour une collecte de dons (pas de vote à projeter). */}
+        {tenantKind !== "donation" && (
+          <div className="border-t border-slate-200 px-5 py-3">
+            <a
+              href={`/direct/${currentTenant}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-all duration-150 hover:bg-slate-100 hover:text-slate-900"
+            >
+              <span className="text-base">🖥️</span>
+              <span>Écran de vote en direct</span>
+            </a>
+            <p className="px-3 pb-1 text-[11px] text-slate-400">Page publique, à projeter — aucune connexion requise pour l'ouvrir.</p>
+          </div>
+        )}
 
         <div className="border-t border-slate-200 px-5 py-4">
           <div className="flex items-center gap-3">
@@ -161,7 +179,7 @@ export default function Layout() {
             </svg>
           </button>
           <p className="truncate text-sm font-semibold text-slate-900">
-            {currentNavItem ? `${currentNavItem.icon} ${currentNavItem.label}` : "Espace Admin"}
+            {currentNavItem ? `${currentNavItem.icon} ${currentNavItem.labelByKind?.[tenantKind] || currentNavItem.label}` : "Espace Admin"}
           </p>
         </header>
 

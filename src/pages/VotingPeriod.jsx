@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { tenantApi, panelApi } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { getTenant } from "../lib/tenants.js";
 
 const OVERRIDE_LABELS = {
   none: "Désactivé — comportement normal (piloté par les dates)",
@@ -10,6 +11,9 @@ const OVERRIDE_LABELS = {
 
 export default function VotingPeriod() {
   const { currentTenant, isAdmin } = useAuth();
+  // Un tenant "donation" (ex: amp-benin) n'a ni votes ni tickets : tous les
+  // blocs qui en dépendent sont masqués ci-dessous (voir lib/tenants.js).
+  const isDonationTenant = getTenant(currentTenant)?.kind === "donation";
   const [settings, setSettings] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -354,7 +358,7 @@ export default function VotingPeriod() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="mb-6 text-2xl font-bold text-slate-900">Période de vote</h1>
+      <h1 className="mb-6 text-2xl font-bold text-slate-900">{isDonationTenant ? "Réglages" : "Période de vote"}</h1>
 
       {notice && <p className="mb-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{notice}</p>}
       {error && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -363,7 +367,7 @@ export default function VotingPeriod() {
         <p className="text-sm text-slate-500">Chargement...</p>
       ) : (
         <>
-          {!isAdmin && overrideMode !== "none" && (
+          {!isDonationTenant && !isAdmin && overrideMode !== "none" && (
             <div className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-800">
               <p className="font-semibold">
                 {overrideMode === "force_open" ? "Bouton spécial actif : votes forcés ouverts" : "Bouton spécial actif : votes forcés fermés"}
@@ -373,6 +377,7 @@ export default function VotingPeriod() {
             </div>
           )}
 
+          {!isDonationTenant && (
           <form onSubmit={handleSaveDates} className="panel-card">
             <p className="mb-1 text-sm font-semibold text-slate-900">Dates de vote</p>
             <p className="mb-4 text-xs text-slate-500">
@@ -419,7 +424,9 @@ export default function VotingPeriod() {
               {saving ? "Enregistrement..." : "Enregistrer les dates"}
             </button>
           </form>
+          )}
 
+          {!isDonationTenant && (
           <div className="panel-card mt-6">
             <p className="mb-1 text-sm font-semibold text-slate-900">Affichage du nombre de votes</p>
             <p className="mb-4 text-xs text-slate-500">
@@ -438,8 +445,9 @@ export default function VotingPeriod() {
               Masquer le nombre de votes sur le site public
             </label>
           </div>
+          )}
 
-          {isAdmin && (
+          {isAdmin && !isDonationTenant && (
             <div className="panel-card mt-6">
               <p className="mb-1 text-sm font-semibold text-slate-900">Billetterie (admin uniquement)</p>
               <p className="mb-4 text-xs text-slate-500">
@@ -460,7 +468,7 @@ export default function VotingPeriod() {
             </div>
           )}
 
-          {isAdmin && (
+          {isAdmin && isDonationTenant && (
             <div className="panel-card mt-6">
               <p className="mb-1 text-sm font-semibold text-slate-900">Collecte de dons (admin uniquement)</p>
               <p className="mb-4 text-xs text-slate-500">
@@ -497,7 +505,7 @@ export default function VotingPeriod() {
             </div>
           )}
 
-          {isAdmin && (
+          {isAdmin && !isDonationTenant && (
             <form onSubmit={handleSaveOverride} className="mt-6 rounded-2xl border border-red-200 bg-red-50/50 p-6 shadow-sm">
               <p className="mb-1 text-sm font-semibold text-slate-900">Bouton spécial (admin uniquement)</p>
               <p className="mb-4 text-xs text-slate-500">
@@ -542,7 +550,7 @@ export default function VotingPeriod() {
             </form>
           )}
 
-          {isAdmin && (
+          {isAdmin && !isDonationTenant && (
             <form onSubmit={handleSaveAdminSettings} className="panel-card mt-6">
               <p className="mb-4 text-sm font-semibold text-slate-900">Réglages billetterie (admin)</p>
               <div className="space-y-4">
@@ -570,7 +578,7 @@ export default function VotingPeriod() {
             </form>
           )}
 
-          {isAdmin && (
+          {isAdmin && !isDonationTenant && (
             <form onSubmit={handleSaveFee} className="mt-6 rounded-2xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm">
               <p className="mb-1 text-sm font-semibold text-slate-900">Frais de transaction — vote (admin uniquement)</p>
               <p className="mb-4 text-xs text-slate-500">
@@ -618,7 +626,7 @@ export default function VotingPeriod() {
             <form onSubmit={handleSavePaymentType} className="mt-6 rounded-2xl border border-sky-200 bg-sky-50/50 p-6 shadow-sm">
               <p className="mb-1 text-sm font-semibold text-slate-900">Mode de paiement (admin uniquement)</p>
               <p className="mb-4 text-xs text-slate-500">
-                "Local" : FedaPay uniquement, comme aujourd'hui. "Afrique" : le votant choisit son pays, routé vers
+                "Local" : FedaPay uniquement, comme aujourd'hui. "Afrique" : {isDonationTenant ? "le donateur choisit" : "le votant choisit"} son pays, routé vers
                 FedaPay ou SebPay selon le{" "}
                 <a href="/mapping-pays" className="underline">mapping global pays→fournisseur</a>.
               </p>
@@ -677,35 +685,42 @@ export default function VotingPeriod() {
             <form onSubmit={handleSaveLabor} className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-6 shadow-sm">
               <p className="mb-1 text-sm font-semibold text-slate-900">Pourcentage main d'œuvre (admin uniquement)</p>
               <p className="mb-4 text-xs text-slate-500">
-                Commission prélevée par l'entreprise — un pourcentage distinct pour les votes, les tickets et les
-                dons. Contrairement aux frais de transaction, ces pourcentages et le revenu net qui en résulte sont
+                Commission prélevée par l'entreprise{" "}
+                {isDonationTenant
+                  ? "sur les dons collectés."
+                  : "— un pourcentage distinct pour les votes, les tickets et les dons."}{" "}
+                Contrairement aux frais de transaction, ces pourcentages et le revenu net qui en résulte sont
                 visibles par le compte promoteur.
               </p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div>
-                  <label className="field-label">Votes (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={voteLaborPercent}
-                    onChange={(e) => setVoteLaborPercent(e.target.value)}
-                    className="field-input"
-                  />
-                </div>
-                <div>
-                  <label className="field-label">Tickets (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    value={ticketLaborPercent}
-                    onChange={(e) => setTicketLaborPercent(e.target.value)}
-                    className="field-input"
-                  />
-                </div>
+              <div className={`grid grid-cols-1 gap-4 ${isDonationTenant ? "sm:max-w-xs" : "sm:grid-cols-3"}`}>
+                {!isDonationTenant && (
+                  <div>
+                    <label className="field-label">Votes (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={voteLaborPercent}
+                      onChange={(e) => setVoteLaborPercent(e.target.value)}
+                      className="field-input"
+                    />
+                  </div>
+                )}
+                {!isDonationTenant && (
+                  <div>
+                    <label className="field-label">Tickets (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={ticketLaborPercent}
+                      onChange={(e) => setTicketLaborPercent(e.target.value)}
+                      className="field-input"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="field-label">Dons (%)</label>
                   <input
