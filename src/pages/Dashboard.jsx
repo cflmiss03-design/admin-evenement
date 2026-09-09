@@ -37,6 +37,10 @@ function SectionHeader({ icon, title, subtitle }) {
 
 export default function Dashboard() {
   const { currentTenant } = useAuth();
+  // Un tenant "donation" (ex: amp-benin) n'a ni candidats ni votes/tickets :
+  // toutes les cartes/graphiques qui en dépendent n'ont aucun sens et sont
+  // remplacés ci-dessous par l'équivalent côté dons (voir lib/tenants.js).
+  const isDonationTenant = getTenant(currentTenant)?.kind === "donation";
   const [balance, setBalance] = useState(null);
   const [candidates, setCandidates] = useState([]);
   const [pendingWithdrawals, setPendingWithdrawals] = useState(0);
@@ -50,7 +54,9 @@ export default function Dashboard() {
 
     Promise.all([
       tenantApi(currentTenant, "/balances"),
-      tenantApi(currentTenant, "/manager"),
+      // Sans objet pour un tenant "donation" — jamais de candidat, on
+      // évite l'appel plutôt que d'afficher une liste vide pour rien.
+      isDonationTenant ? Promise.resolve([]) : tenantApi(currentTenant, "/manager"),
       tenantApi(currentTenant, "/withdrawals"),
     ])
       .then(([bal, cands, withdrawals]) => {
@@ -65,6 +71,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTenant]);
 
   const top5 = [...candidates].sort((a, b) => (b.totalVotes || 0) - (a.totalVotes || 0)).slice(0, 5);
@@ -129,40 +136,79 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          <SectionHeader icon="📊" title="Balance" />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              icon="✅"
-              label="Votes réels"
-              value={formatNumber(balance?.totalRealVotes)}
-              hint="Votes payants validés"
-              accent="green"
-            />
-            <StatCard
-              icon="✏️"
-              label="Votes fictifs"
-              value={formatNumber(balance?.totalFictiveVotes)}
-              hint="Ajoutés manuellement, hors calculs financiers"
-              accent="amber"
-            />
-            <StatCard
-              icon="🗳️"
-              label="Total des votes"
-              value={formatNumber(balance?.totalVotes)}
-              hint="Réels + fictifs (nombre affiché publiquement)"
-              accent="brand"
-              highlighted
-            />
-            <StatCard
-              icon="💰"
-              label="Revenu (votes réels)"
-              value={formatFCFA(balance?.revenueFromRealVotes)}
-              hint="Votes réels × prix par candidat — jamais les fictifs"
-              accent="green"
-            />
-          </div>
+          {isDonationTenant ? (
+            <>
+              <SectionHeader icon="💵" title="Revenu net (promoteur)" subtitle="Commission sur les dons collectés" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                  icon="💰"
+                  label="Revenu dons (brut)"
+                  value={formatFCFA(balance?.revenueFromDonations)}
+                  hint="Avant commission"
+                  accent="brand"
+                />
+                <StatCard
+                  icon="⚙️"
+                  label="Main d'œuvre — dons"
+                  value={`${balance?.donationLaborPercent ?? 0}%`}
+                  hint="Commission sur le revenu des dons"
+                  accent="amber"
+                />
+                <StatCard
+                  icon="✅"
+                  label="Revenu net — dons"
+                  value={formatFCFA(balance?.netDonationRevenue)}
+                  hint="Après commission"
+                  accent="green"
+                />
+                <StatCard
+                  icon="🏆"
+                  label="Revenu net total (promoteur)"
+                  value={formatFCFA(balance?.netRevenue)}
+                  hint="Ce qui revient réellement au promoteur"
+                  accent="green"
+                  highlighted
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <SectionHeader icon="📊" title="Balance" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                  icon="✅"
+                  label="Votes réels"
+                  value={formatNumber(balance?.totalRealVotes)}
+                  hint="Votes payants validés"
+                  accent="green"
+                />
+                <StatCard
+                  icon="✏️"
+                  label="Votes fictifs"
+                  value={formatNumber(balance?.totalFictiveVotes)}
+                  hint="Ajoutés manuellement, hors calculs financiers"
+                  accent="amber"
+                />
+                <StatCard
+                  icon="🗳️"
+                  label="Total des votes"
+                  value={formatNumber(balance?.totalVotes)}
+                  hint="Réels + fictifs (nombre affiché publiquement)"
+                  accent="brand"
+                  highlighted
+                />
+                <StatCard
+                  icon="💰"
+                  label="Revenu (votes réels)"
+                  value={formatFCFA(balance?.revenueFromRealVotes)}
+                  hint="Votes réels × prix par candidat — jamais les fictifs"
+                  accent="green"
+                />
+              </div>
+            </>
+          )}
 
-          {hasVotesSplit && (
+          {!isDonationTenant && hasVotesSplit && (
             <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div className="panel-card">
                 <p className="mb-4 text-sm font-semibold text-slate-900">Répartition des votes</p>
@@ -190,66 +236,70 @@ export default function Dashboard() {
             </div>
           )}
 
-          <SectionHeader
-            icon="💵"
-            title="Revenu net (promoteur)"
-            subtitle="Votes et tickets ont chacun leur propre pourcentage de commission"
-          />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              icon="🎟️"
-              label="Revenu tickets (brut)"
-              value={formatFCFA(balance?.revenueFromTickets)}
-              hint="Billets payés uniquement"
-              accent="brand"
-            />
-            <StatCard
-              icon="🧮"
-              label="Revenu brut total"
-              value={formatFCFA(balance?.grossRevenue)}
-              hint="Votes réels + tickets, avant commission"
-              accent="brand"
-            />
-            <StatCard
-              icon="⚙️"
-              label="Main d'œuvre — votes"
-              value={`${balance?.voteLaborPercent ?? 0}%`}
-              hint="Commission sur le revenu des votes"
-              accent="amber"
-            />
-            <StatCard
-              icon="⚙️"
-              label="Main d'œuvre — tickets"
-              value={`${balance?.ticketLaborPercent ?? 0}%`}
-              hint="Commission sur le revenu des tickets"
-              accent="amber"
-            />
-          </div>
+          {!isDonationTenant && (
+            <>
+              <SectionHeader
+                icon="💵"
+                title="Revenu net (promoteur)"
+                subtitle="Votes et tickets ont chacun leur propre pourcentage de commission"
+              />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                  icon="🎟️"
+                  label="Revenu tickets (brut)"
+                  value={formatFCFA(balance?.revenueFromTickets)}
+                  hint="Billets payés uniquement"
+                  accent="brand"
+                />
+                <StatCard
+                  icon="🧮"
+                  label="Revenu brut total"
+                  value={formatFCFA(balance?.grossRevenue)}
+                  hint="Votes réels + tickets, avant commission"
+                  accent="brand"
+                />
+                <StatCard
+                  icon="⚙️"
+                  label="Main d'œuvre — votes"
+                  value={`${balance?.voteLaborPercent ?? 0}%`}
+                  hint="Commission sur le revenu des votes"
+                  accent="amber"
+                />
+                <StatCard
+                  icon="⚙️"
+                  label="Main d'œuvre — tickets"
+                  value={`${balance?.ticketLaborPercent ?? 0}%`}
+                  hint="Commission sur le revenu des tickets"
+                  accent="amber"
+                />
+              </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              icon="✅"
-              label="Revenu net — votes"
-              value={formatFCFA(balance?.netVoteRevenue)}
-              hint="Après commission votes"
-              accent="green"
-            />
-            <StatCard
-              icon="✅"
-              label="Revenu net — tickets"
-              value={formatFCFA(balance?.netTicketRevenue)}
-              hint="Après commission tickets"
-              accent="green"
-            />
-            <StatCard
-              icon="🏆"
-              label="Revenu net total (promoteur)"
-              value={formatFCFA(balance?.netRevenue)}
-              hint="Ce qui revient réellement au promoteur"
-              accent="green"
-              highlighted
-            />
-          </div>
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <StatCard
+                  icon="✅"
+                  label="Revenu net — votes"
+                  value={formatFCFA(balance?.netVoteRevenue)}
+                  hint="Après commission votes"
+                  accent="green"
+                />
+                <StatCard
+                  icon="✅"
+                  label="Revenu net — tickets"
+                  value={formatFCFA(balance?.netTicketRevenue)}
+                  hint="Après commission tickets"
+                  accent="green"
+                />
+                <StatCard
+                  icon="🏆"
+                  label="Revenu net total (promoteur)"
+                  value={formatFCFA(balance?.netRevenue)}
+                  hint="Ce qui revient réellement au promoteur"
+                  accent="green"
+                  highlighted
+                />
+              </div>
+            </>
+          )}
 
           <SectionHeader icon="🏦" title="Solde & retraits" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -268,26 +318,37 @@ export default function Dashboard() {
               accent="amber"
               highlighted
             />
-            <StatCard icon="🎤" label="Candidats" value={candidates.length} accent="brand" />
+            {isDonationTenant ? (
+              <StatCard
+                icon="💝"
+                label="Dons reçus"
+                value={formatNumber((balance?.donationsFedapay || 0) + (balance?.donationsSebpay || 0))}
+                accent="brand"
+              />
+            ) : (
+              <StatCard icon="🎤" label="Candidats" value={candidates.length} accent="brand" />
+            )}
             <StatCard icon="📤" label="Montant total retiré" value={formatFCFA(balance?.montantTransfere)} />
           </div>
 
-          <div className="panel-card mt-8">
-            <p className="mb-4 text-sm font-semibold text-slate-900">Top 5 candidats par votes</p>
-            {top5.length === 0 ? (
-              <p className="text-sm text-slate-500">Aucun candidat pour l'instant.</p>
-            ) : (
-              <Bar
-                data={rankingData}
-                options={{
-                  indexAxis: "y",
-                  responsive: true,
-                  plugins: { legend: { display: false } },
-                  scales: { x: { beginAtZero: true } },
-                }}
-              />
-            )}
-          </div>
+          {!isDonationTenant && (
+            <div className="panel-card mt-8">
+              <p className="mb-4 text-sm font-semibold text-slate-900">Top 5 candidats par votes</p>
+              {top5.length === 0 ? (
+                <p className="text-sm text-slate-500">Aucun candidat pour l'instant.</p>
+              ) : (
+                <Bar
+                  data={rankingData}
+                  options={{
+                    indexAxis: "y",
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } },
+                  }}
+                />
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
